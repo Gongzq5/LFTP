@@ -1,4 +1,4 @@
-package lftp;
+package useless;
 
 import java.io.IOException;
 

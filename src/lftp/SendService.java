@@ -114,6 +114,7 @@ public class SendService {
 		    				System.out.println(str);
 		    				System.out.println(fileNumber);
 		    				System.out.println("SnedBase: " + sendBase); 
+		    				packetList.remove(fileNumber);
 		    				packetList.add(fileNumber, tem);
 		    				fileNumber = (fileNumber+1)%LISTSIZE;
 		    			} else {

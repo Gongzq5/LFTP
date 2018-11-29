@@ -1,17 +1,15 @@
 package lftp;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.LinkedList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.logging.Logger;
+import java.util.Map;
 
-public class Service {
+public class SendService {
 	private static final int LISTSIZE = 256;
 	private List<LFTP_packet> packetList = new ArrayList<LFTP_packet>(LISTSIZE);
 	private SendThread sendThread = null;
@@ -26,7 +24,11 @@ public class Service {
 	
 	private boolean isSending = false;
 	
-	public Service() {}
+	private Map<Integer, Boolean> unUsedAck = null;
+	
+	public SendService() {
+		unUsedAck = new HashMap<Integer, Boolean>();
+	}
 
 	public void send() throws UnknownHostException {
 		if (sendThread == null) {
@@ -75,13 +77,24 @@ public class Service {
 		public void run() {
 			try {
 				DatagramSocket datagramSocket = new DatagramSocket();
-				while (true) {
+				while (sendBase != nextSeqNumber) {
 					datagramSocket.receive(datagramPacket);
 					byte[] data = datagramPacket.getData();
 					LFTP_packet packet = new LFTP_packet(data);
 					
 					int ack = packet.getAck();
-					
+					// 如果收到sendBase的ack,那么更新sendBase,否则把他加入到unUsedAck里
+					if (ack == packetList.get(sendBase).getSerialNumber()) {
+						sendBase++;
+						// sendBase递增，然后查看下一个sendBase是否被确认过
+						// 是的话递增，直到一个sendBase没有被确认为止
+						while (unUsedAck.get(packetList.get(sendBase).getSerialNumber())) {
+							unUsedAck.remove(packetList.get(sendBase).getSerialNumber());
+							sendBase++;
+						}
+					} else {
+						unUsedAck.put(ack, true);
+					}					
 				}
 				datagramSocket.close();
 			} catch (Exception e) {

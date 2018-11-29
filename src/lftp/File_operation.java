@@ -10,6 +10,7 @@ import java.util.List;
 public class File_operation {
 	static private String path;
 	private static final int READSIZE = 100;
+	private static final int HEADSIZE = 10;
 	
 	public File_operation(String path_) {
 		this.path = path_;
@@ -28,25 +29,15 @@ public class File_operation {
 	    	InputStream is = null;
 	    	try {
 	    		is = new FileInputStream(src);
-	    	} catch(Exception e) {	 
-	    		e.printStackTrace();
-	    	}
 	    	
-	    	for (int i = 0; ; i++) {
-	    		if ((fileNumber+1)%SIZE == sendBase) {
-	    			try {
-	    				Thread.sleep(500);
-	    			} catch (Exception e) {
-	    				e.printStackTrace();
-	    			}
-//	    			System.out.println("test");
-//	    			System.out.println("SnedBase: " + sendBase + "   " + fileNumber); 
-	    			i--;
-	    		} else {
-	    			try {
+		    	for (int i = 0; ; i++) {
+		    		if ((fileNumber+1)%SIZE == sendBase) {
+		    			Thread.sleep(500);
+		    			i--;
+		    		} else {
 		    			byte[] car = new byte[READSIZE];
 		    			if (is.read(car) != -1) {
-		    				LFTP_packet tem = new LFTP_packet(i, 0, 0, car);
+		    				LFTP_packet tem = new LFTP_packet(i, 0, 0, 256, car);
 		    				String str = new String(tem.tobyte(), 6 , tem.tobyte().length-6);	                
 		    				System.out.println(str);
 		    				System.out.println(fileNumber);
@@ -57,15 +48,14 @@ public class File_operation {
 		    				is.close();
 		    				break;
 		    			}
-		    			
-	    			} catch (Exception e) {
-						e.printStackTrace();
-					}
-	    			
-	    		}
-	    	}
+			    		    			
+		    		}
+		    	}
 	    	
-	    }
+	    	} catch(Exception e) {	 
+	    		e.printStackTrace();
+	    	}
+	    }	    	
 	}
 	
 	private static class SendThread extends Thread {

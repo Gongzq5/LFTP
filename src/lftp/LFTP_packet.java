@@ -25,6 +25,22 @@ public class LFTP_packet {
 		this.packet = packet;
 	}
 	
+	public void setState(State state) {
+		this.state = state;
+	}
+	
+	public void setTime(Long time) {
+		this.time = time;
+	}
+	
+	public State getState() {
+		return state;
+	}
+	
+	public Long getTime() {
+		return time;
+	}
+	
 	public int getSerialNumber() {
 		return head.getSerialNumber_int();
 	}
@@ -44,6 +60,7 @@ public class LFTP_packet {
 	public byte[] getData() {
 		return packet;
 	}
+	
 	
 	public byte[] tobyte() {
 		byte[] res = new byte[6+packet.length];

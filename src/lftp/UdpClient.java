@@ -46,7 +46,9 @@ public class UdpClient {
                 System.out.println("Send: " + sendStr);
                 tries ++;
 	            try {
+//	            	DatagramSocket datagramSocket2 = new DatagramSocket(PORT_NUM);
 	            	datagramSocket.receive(recePacket);
+//	            	datagramSocket2.close();
 	            	receivedResponse = true;
 	                String receStr = new String(recePacket.getData(), 0 , recePacket.getLength());
 	                System.out.println("Client Rece Ack:" + receStr);
@@ -66,6 +68,7 @@ public class UdpClient {
             // ¹Ø±Õsocket
             if(datagramSocket != null){
                 datagramSocket.close();
+                
             }
         }
     }  

@@ -1,7 +1,7 @@
 package lftp;
 
 public class LFTP_packet {
-	private static final int HEADSIZE = 10;
+	private static final int HEADSIZE = 11;
 	private LFTP_head head;
 	private byte[] packet;
 	private State state;
@@ -15,15 +15,15 @@ public class LFTP_packet {
 		byte[] number2 = new byte[4];
 		System.arraycopy(packet, 0, number, 0, 4);
 		System.arraycopy(packet, 6, number2, 0, 4);
-		head = new LFTP_head(number, packet[4], packet[5], number2);
+		head = new LFTP_head(number, packet[4], packet[5], number2, packet[10]);
 
 		byte[] pac = new byte[packet.length-6];
 		System.arraycopy(packet, HEADSIZE, pac, 0, packet.length-HEADSIZE);
 		this.packet = pac;
 	}
 	
-	public LFTP_packet(int number, int islast, int ack, int receive_widow, byte[] packet) {
-		LFTP_head tem = new LFTP_head(number, islast, ack, receive_widow);
+	public LFTP_packet(int number, int islast, int ack, int receive_widow, int isfinal, byte[] packet) {
+		LFTP_head tem = new LFTP_head(number, islast, ack, receive_widow, isfinal);
 		this.head = tem;
 		this.packet = packet;
 	}
@@ -50,6 +50,10 @@ public class LFTP_packet {
 	
 	public int getIslast() {
 		return head.getIslast_int();
+	}
+	
+	public int getIsfinal() {
+		return head.getIsfinal_int();
 	}
 	
 	public int getAck() {
@@ -79,12 +83,13 @@ public class LFTP_packet {
 	
 	
 	public static void main(String[] args) {
-		LFTP_packet test = new LFTP_packet(10, 0, 0, 120, "test".getBytes());
+		LFTP_packet test = new LFTP_packet(10, 0, 0, 120, 1, "test".getBytes());
 		
 		System.out.println(test.getSerialNumber());
 		System.out.println(test.getIslast());
 		System.out.println(test.getAck());
 		System.out.println(test.getReceiveWindow());
+		System.out.println(test.getIsfinal());
 		String string = new String(test.getData(), 0, test.getData().length);
 		System.out.println(string);
 		System.out.println(test.tobyte().length);
@@ -96,6 +101,7 @@ public class LFTP_packet {
 		System.out.println(test2.getIslast());
 		System.out.println(test2.getAck());
 		System.out.println(test2.getReceiveWindow());
+		System.out.println(test2.getIsfinal());
 		String string2 = new String(test2.getData(), 0, test2.getData().length);
 		System.out.println(string2);
 		System.out.println(test2.tobyte().length);

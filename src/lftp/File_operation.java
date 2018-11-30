@@ -78,10 +78,9 @@ public class File_operation {
 	
 
 	public static void main(String[] args) {	
-		File_operation file_operation = new File_operation("C:\\Users\\LENOVO\\Desktop\\test.txt");
+		File_operation file_operation = new File_operation("C:\\Users\\LENOVO\\Desktop\\send.txt");
 		
 		(new FileThread()).start();
-//		System.out.println("Asdfas");
 		(new SendThread()).start();
 		
 		

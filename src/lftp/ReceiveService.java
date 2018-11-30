@@ -71,19 +71,19 @@ public class ReceiveService {
 //						System.out.println("sleep");
 						Thread.sleep(10);
 					} else {				
-//						System.out.println("µÈ´ı½ÓÊÕ");
+//						System.out.println("ç­‰å¾…æ¥æ”¶");
 						datagramSocket.receive(datagramPacket);
 						LFTP_packet tem = new LFTP_packet(receMsgs);
 											
 //						String string = new String(tem.getData(), 0 , tem.getData().length);
-//						System.out.println("½ÓÊÕµ½ÁË: £¿" + string);	
+//						System.out.println("æ¥æ”¶åˆ°äº†: ï¼Ÿ" + string);	
 						
 						if (packetList.size() > receiveBase)
 	    					packetList.remove(receiveBase);
 						packetList.add(receiveBase, tem);
 						receiveBase = (receiveBase+1)%LISTSIZE;
 						
-//						System.out.println("½ÓÊÕºó£º" + receiveBase);
+//						System.out.println("æ¥æ”¶åï¼š" + receiveBase);
 
 						LFTP_packet tem2 = new LFTP_packet(tem.getSerialNumber(), 0, 1,
 								windowSize, 0, "ok".getBytes());
@@ -101,7 +101,7 @@ public class ReceiveService {
 //				datagramSocket.close();
 			} catch (Exception e) {
 				e.printStackTrace();
-				System.out.println("½ÓÊÕ³ö´í");
+				System.out.println("æ¥æ”¶å‡ºé”™");
 			}
 		}
 	}
@@ -117,11 +117,11 @@ public class ReceiveService {
 	    		out = new FileOutputStream(src);    	
 		    	while(true) {
 		    		if (filereadNumber == receiveBase) {
-		    			System.out.println("»¹Ã»½ÓÊÜµ½ÎÄ¼ş£¬µ±Ç°£º" + filereadNumber + "  " + receiveBase);
+		    			System.out.println("è¿˜æ²¡æ¥å—åˆ°æ–‡ä»¶ï¼Œå½“å‰ï¼š" + filereadNumber + "  " + receiveBase);
 		    			Thread.sleep(10);
 		    		} else {
 		    			if (filewriteNumber%200 == 0) {
-		    				System.out.println("Ğ´ÎÄ¼şÀ² £¬Ğ´£º" + filewriteNumber + "  ½ÓÊÕµ½µÄ£º" + packetList.get(filereadNumber).getSerialNumber());
+		    				System.out.println("å†™æ–‡ä»¶å•¦ ï¼Œå†™ï¼š" + filewriteNumber + "  æ¥æ”¶åˆ°çš„ï¼š" + packetList.get(filereadNumber).getSerialNumber());
 			
 		    			}
 		    			if (filewriteNumber == packetList.get(filereadNumber).getSerialNumber()) {
@@ -160,7 +160,7 @@ public class ReceiveService {
 	}
 		
 	public static void main(String[] args) throws UnknownHostException {
-		ReceiveService test = new ReceiveService(5066, "C:\\Users\\LENOVO\\Desktop\\receive.txt");
+		ReceiveService test = new ReceiveService(5066, "D:\\b.txt");
 		test.receive();
 	}
 }

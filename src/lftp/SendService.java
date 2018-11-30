@@ -87,8 +87,8 @@ public class SendService {
 //				DatagramSocket datagramSocket = null;	
 				datagramSocket = new DatagramSocket();
 				while (isSending) {
-//					System.out.println("¼´½«·¢ËÍ£º " + nextSeqNumber);
-					// ÏÈ·¢ÖØ´«µÄ°ü
+//					System.out.println("å³å°†å‘é€ï¼š " + nextSeqNumber);
+					// å…ˆå‘é‡ä¼ çš„åŒ…
 					while (!reSendQueue.isEmpty()) {
 						LFTP_packet packet = reSendQueue.poll();
 						packet.setTime(System.currentTimeMillis());
@@ -98,7 +98,7 @@ public class SendService {
 						datagramSocket.send(datagramPacket);
 						System.out.println("chongfa" + packet.getSerialNumber());
 					}
-//					System.out.println("¼´½«·¢ËÍ2£º " + nextSeqNumber);
+//					System.out.println("å³å°†å‘é€2ï¼š " + nextSeqNumber);
 					boolean willSend = false;
 					if (nextSeqNumber == fileNumber) {
 						willSend = false;
@@ -109,8 +109,8 @@ public class SendService {
 					} 
 					
 					
-//					System.out.println("¼´½«·¢ËÍ3£º " + willSend);
-					// È»ºó·¢Õý³£µÄ°ü
+//					System.out.println("å³å°†å‘é€3ï¼š " + willSend);
+					// ç„¶åŽå‘æ­£å¸¸çš„åŒ…
 					if (willSend) {
 //						nextSeqNumber = (nextSeqNumber+1) % LISTSIZE;
 						LFTP_packet packet = packetList.get(nextSeqNumber);
@@ -119,7 +119,7 @@ public class SendService {
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
 //						datagramSocket.setReuseAddress(true); 
-//						System.out.println("·¢ËÍ");
+//						System.out.println("å‘é€");
 						datagramSocket.send(datagramPacket);
 //						System.out.println(datagramPacket.getAddress() + "  " + datagramPacket.getPort());
 
@@ -127,7 +127,7 @@ public class SendService {
 					} else {					
 						Thread.sleep(10);
 					}
-//					System.out.println("ÒÑ·¢ËÍ£º(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase +
+//					System.out.println("å·²å‘é€ï¼š(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase +
 //							"   "  + " fileNumber: " + fileNumber + "   " + willSend);
 				}
 //				System.out.println("yguyg");
@@ -135,7 +135,7 @@ public class SendService {
 //				datagramSocket.close();		
 			} catch (Exception e) {
 				e.printStackTrace();
-				System.out.println("·¢ËÍ³ö´í");
+				System.out.println("å‘é€å‡ºé”™");
 			}
 		}
 	}
@@ -154,7 +154,7 @@ public class SendService {
 //				datagramSocket.bind(new InetSocketAddress(port));
 				Thread.sleep(10);
 				while (true) {
-//					System.out.println("µÈ´ý½ÓÊÕ: "+ sendBase);
+//					System.out.println("ç­‰å¾…æŽ¥æ”¶: "+ sendBase);
 					datagramSocket.receive(datagramPacket);
 					
 //					byte[] data = datagramPacket.getData();
@@ -166,14 +166,14 @@ public class SendService {
 					
 //					if (packet.getAck() == 1) {
 //						String string = new String(packet.getData(), 0 , packet.getData().length);
-//						System.out.println("½ÓÊÕµ½ÁË: £¿" + string);	
+//						System.out.println("æŽ¥æ”¶åˆ°äº†: ï¼Ÿ" + string);	
 //					}
 
-					// Èç¹ûÊÕµ½À´×Ô½ÓÊÕ·½µÄack,ÄÇÃ´¸üÐÂsendBase,·ñÔò°ÑËû¼ÓÈëµ½unUsedAckÀï
+					// å¦‚æžœæ”¶åˆ°æ¥è‡ªæŽ¥æ”¶æ–¹çš„ack,é‚£ä¹ˆæ›´æ–°sendBase,å¦åˆ™æŠŠä»–åŠ å…¥åˆ°unUsedAcké‡Œ
 					if (packet.getAck() == 1 && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {
 						sendBase = (sendBase+1)%LISTSIZE;
-						// sendBaseµÝÔö£¬È»ºó²é¿´ÏÂÒ»¸ösendBaseÊÇ·ñ±»È·ÈÏ¹ý
-						// ÊÇµÄ»°µÝÔö£¬Ö±µ½Ò»¸ösendBaseÃ»ÓÐ±»È·ÈÏÎªÖ¹
+						// sendBaseé€’å¢žï¼Œç„¶åŽæŸ¥çœ‹ä¸‹ä¸€ä¸ªsendBaseæ˜¯å¦è¢«ç¡®è®¤è¿‡
+						// æ˜¯çš„è¯é€’å¢žï¼Œç›´åˆ°ä¸€ä¸ªsendBaseæ²¡æœ‰è¢«ç¡®è®¤ä¸ºæ­¢
 						if (unUsedAck.size() > sendBase) {
 							while (unUsedAck.get(packetList.get(sendBase).getSerialNumber())) {
 								unUsedAck.remove(packetList.get(sendBase).getSerialNumber());
@@ -189,7 +189,7 @@ public class SendService {
 //				System.out.println("fsdfad");
 			} catch (Exception e) {
 				e.printStackTrace();
-//				System.out.println("½ÓÊÕ³ö´í");
+//				System.out.println("æŽ¥æ”¶å‡ºé”™");
 			}
 		}
 	}
@@ -205,14 +205,14 @@ public class SendService {
 		    	for (int i = 0; ; i++) {
 		    		if ((fileNumber+1)%LISTSIZE == sendBase) {
 		    			Thread.sleep(10);
-//		    			System.out.println("¿Õ¼äÒÑÂú£¬µÈ´ý·¢ËÍ");
+//		    			System.out.println("ç©ºé—´å·²æ»¡ï¼Œç­‰å¾…å‘é€");
 		    			i--;
 		    		} else {
 		    			byte[] car = new byte[READSIZE];
 		    			if (is.read(car) != -1) {		    				
 		    				LFTP_packet tem = new LFTP_packet(i, 0, 0, 256, 0, car);
 		    				if (fileNumber == 0)
-		    					System.out.println("¶ÁÈ¡ÎÄ¼þ  ´æµ½ " + fileNumber + " ´ËÊ±SendBase£º " + sendBase + " ÎÄ ¼þºÅ£º" + i);
+		    					System.out.println("è¯»å–æ–‡ä»¶  å­˜åˆ° " + fileNumber + " æ­¤æ—¶SendBaseï¼š " + sendBase + " æ–‡ ä»¶å·ï¼š" + i);
 		    				if (packetList.size() > fileNumber)
 		    					packetList.remove(fileNumber);
 		    				packetList.add(fileNumber, tem);
@@ -223,6 +223,7 @@ public class SendService {
 		    				if (packetList.size() > fileNumber)
 		    					packetList.remove(fileNumber);
 		    				packetList.add(fileNumber, tem);
+		    				
 		    				fileNumber = (fileNumber+1)%LISTSIZE;
 		    				break;
 		    			}
@@ -245,9 +246,10 @@ public class SendService {
 			}
 		}
 	}
+	
 	public static void main(String[] args) throws UnknownHostException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "C:\\Users\\LENOVO\\Desktop\\send.txt");
+		SendService test = new SendService(inetAddress, "D:\\a.txt");
 		test.send();
 	}
 }

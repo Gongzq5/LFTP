@@ -96,7 +96,7 @@ public class SendService {
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
 						datagramSocket.send(datagramPacket);
-						System.out.println("chongfa" + packet.getSerialNumber());
+//						System.out.println("chongfa" + packet.getSerialNumber());
 					}
 //					System.out.println("即将发送2： " + nextSeqNumber);
 					boolean willSend = false;
@@ -127,8 +127,8 @@ public class SendService {
 					} else {					
 						Thread.sleep(10);
 					}
-//					System.out.println("已发送：(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase +
-//							"   "  + " fileNumber: " + fileNumber + "   " + willSend);
+					System.out.println("已发送：(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase +
+							"   "  + " fileNumber: " + fileNumber + "   " + willSend);
 				}
 //				System.out.println("yguyg");
 				timer.cancel();
@@ -174,13 +174,13 @@ public class SendService {
 						sendBase = (sendBase+1)%LISTSIZE;
 						// sendBase递增，然后查看下一个sendBase是否被确认过
 						// 是的话递增，直到一个sendBase没有被确认为止
-						if (unUsedAck.size() > sendBase) {
-							while (unUsedAck.get(packetList.get(sendBase).getSerialNumber())) {
+						if (!unUsedAck.isEmpty()) {
+							while (unUsedAck.containsKey(packetList.get(sendBase).getSerialNumber())) {
 								unUsedAck.remove(packetList.get(sendBase).getSerialNumber());
 								sendBase = (sendBase+1)%LISTSIZE;
 							}
 						}
-					} else {
+					} else if (packet.getAck() == 1) {
 						unUsedAck.put(packet.getSerialNumber(), true);
 					}
 				}
@@ -213,16 +213,21 @@ public class SendService {
 		    				LFTP_packet tem = new LFTP_packet(i, 0, 0, 256, 0, car);
 		    				if (fileNumber == 0)
 		    					System.out.println("读取文件  存到 " + fileNumber + " 此时SendBase： " + sendBase + " 文 件号：" + i);
-		    				if (packetList.size() > fileNumber)
-		    					packetList.remove(fileNumber);
-		    				packetList.add(fileNumber, tem);
+		    				if (packetList.size() > fileNumber) {
+		    					packetList.set(fileNumber, tem);
+		    				} else {
+		    					packetList.add(fileNumber, tem);
+		    				}
 		    				fileNumber = (fileNumber+1)%LISTSIZE;
 		    			} else {
 		    				is.close();
 		    				LFTP_packet tem = new LFTP_packet(i, 1, 0, 256, 0, car);
-		    				if (packetList.size() > fileNumber)
-		    					packetList.remove(fileNumber);
-		    				packetList.add(fileNumber, tem);
+
+		    				if (packetList.size() > fileNumber) {
+		    					packetList.set(fileNumber, tem);
+		    				} else {
+		    					packetList.add(fileNumber, tem);
+		    				}
 		    				fileNumber = (fileNumber+1)%LISTSIZE;
 		    				break;
 		    			}
@@ -240,6 +245,7 @@ public class SendService {
 			long curr = System.currentTimeMillis();
 			for (int i = sendBase; i < nextSeqNumber; i=(i+1)%LISTSIZE) {
 				if (curr - packetList.get(i).getTime() > timeOut) {
+					
 					reSendQueue.add(packetList.get(i));
 				}
 			}

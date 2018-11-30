@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SendService {
@@ -35,7 +36,7 @@ public class SendService {
 	private int nextSeqNumber = 0;
 	private boolean isSending = false;
 	private int windowSize = 128; //128
-	private long timeOut = 300;
+	private long timeOut = 200;
 	
 	private String path = null;
 	private int port = 5066;
@@ -50,7 +51,7 @@ public class SendService {
 		this.path = path;
 		
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
-		unUsedAck = new HashMap<Integer, Boolean>();
+		unUsedAck = new ConcurrentHashMap<Integer, Boolean>();
 //		reSendQueue = new LinkedList<>();
 		reSendQueue = new ConcurrentLinkedQueue<>();
 	}
@@ -96,7 +97,7 @@ public class SendService {
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
 						datagramSocket.send(datagramPacket);
-//						System.out.println("chongfa" + packet.getSerialNumber());
+						System.out.println("chongfa" + packet.getSerialNumber());
 					}
 //					System.out.println("即将发送2： " + nextSeqNumber);
 					boolean willSend = false;
@@ -127,8 +128,8 @@ public class SendService {
 					} else {					
 						Thread.sleep(10);
 					}
-					System.out.println("已发送：(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase +
-							"   "  + " fileNumber: " + fileNumber + "   " + willSend);
+					System.out.println("已发送：(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase + " " +
+							packetList.get(sendBase).getSerialNumber() + "   "  + " fileNumber: " + fileNumber + "   " + willSend);
 				}
 				timer.cancel();
 			} catch (Exception e) {
@@ -162,10 +163,10 @@ public class SendService {
 						break;
 					}
 					
-//					if (packet.getAck() == 1) {
-//						String string = new String(packet.getData(), 0 , packet.getData().length);
-//						System.out.println("接收到了: ？" + string);	
-//					}
+					if (packet.getAck() == 1) {
+						String string = new String(packet.getData(), 0 , packet.getData().length);
+						System.out.println("接收到了:  " + packet.getSerialNumber());	
+					}
 
 					// 如果收到来自接收方的ack,那么更新sendBase,否则把他加入到unUsedAck里
 					if (packet.getAck() == 1 && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {
@@ -241,17 +242,19 @@ public class SendService {
 		public void run() {
 			long curr = System.currentTimeMillis();
 			for (int i = sendBase; i < nextSeqNumber; i=(i+1)%LISTSIZE) {
-				if (curr - packetList.get(i).getTime() > timeOut) {
-					
-					reSendQueue.add(packetList.get(i));
+				LFTP_packet packet = packetList.get(i);
+				if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
+					reSendQueue.add(packet);
+					System.out.println("add " + packet.getSerialNumber() + " to the resend queue");
 				}
 			}
+//			System.out.println("COUNTER END=====================");
 		}
 	}
 	
 	public static void main(String[] args) throws UnknownHostException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "D:\\a.txt");
+		SendService test = new SendService(inetAddress, "D:\\c.txt");
 		test.send();
 	}
 }

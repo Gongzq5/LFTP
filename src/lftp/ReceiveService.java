@@ -6,15 +6,18 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ReceiveService {
 	private static final int LISTSIZE = 256; //256
 	private static final int WRITESIZE = 4085;  //4085
 	private static final int HEADSIZE = 11;
-	private List<LFTP_packet> packetList = new ArrayList<LFTP_packet>(LISTSIZE);
+	private List<LFTP_packet> packetList = null;
 
 	private RecieveThread recieveThread = null;
 	private FileThread fileThread = null;
@@ -23,16 +26,18 @@ public class ReceiveService {
 	private int windowSize = 128; //128
 	private int filereadNumber = 0;
 	private int filewriteNumber = 0;
-	private Map<Integer, LFTP_packet> packet = new HashMap<Integer, LFTP_packet>();
+	private Map<Integer, LFTP_packet> packet = new ConcurrentHashMap<Integer, LFTP_packet>();
 	private int PORT_NUM = 5066;
 	
 	private String path = null;
 	private byte[] receMsgs = new byte[WRITESIZE+HEADSIZE];
 	private DatagramSocket datagramSocket ;
     private DatagramPacket datagramPacket ;
-
+    
+    private Map<Integer, Boolean> recievedPackets = new HashMap<>();
 	
 	public ReceiveService(int port, String path) {
+		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
 		PORT_NUM = port;
 		this.path = path;
 	}
@@ -55,32 +60,40 @@ public class ReceiveService {
 		public void run() {
 			try {
 				datagramSocket = new DatagramSocket(PORT_NUM);
-				datagramSocket.setReuseAddress(true); 
 				datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
 				while (true) {
 					boolean willReceive = false;
 //					if (nextSeqNumber >= fileNumber) {
 //						willSend = false;
 //					} else 
-					if (receiveBase <= filereadNumber) {
-						willReceive = ((receiveBase + windowSize) > filereadNumber);
+					System.out.println("recieve base " + receiveBase + "  file read number " + filereadNumber);
+					if (receiveBase < filereadNumber) {
+						willReceive = ((filereadNumber + windowSize) % LISTSIZE > receiveBase);
 					} else {
-						willReceive = ((receiveBase + windowSize) % LISTSIZE > filereadNumber);
-					} 
+						willReceive = ((filereadNumber + windowSize) > receiveBase);
+					}
 					if (!willReceive) {
 //						System.out.println("sleep");
-						Thread.sleep(10);
+						Thread.sleep(3);
 					} else {				
 //						System.out.println("等待接收");
 						datagramSocket.receive(datagramPacket);
 						LFTP_packet tem = new LFTP_packet(receMsgs);
-											
+						
+						if (recievedPackets.containsKey(tem.getSerialNumber())) {
+							continue;
+						} else {
+							recievedPackets.put(tem.getSerialNumber(), true);
+						}
+						
 //						String string = new String(tem.getData(), 0 , tem.getData().length);
 //						System.out.println("接收到了: ？" + string);	
 						
 						if (packetList.size() > receiveBase)
-	    					packetList.remove(receiveBase);
-						packetList.add(receiveBase, tem);
+							packetList.set(receiveBase, tem);
+						else {
+							packetList.add(receiveBase, tem);
+						}
 						receiveBase = (receiveBase+1)%LISTSIZE;
 						
 //						System.out.println("接收后：" + receiveBase);
@@ -122,7 +135,6 @@ public class ReceiveService {
 		    		} else {
 		    			if (filewriteNumber%200 == 0) {
 		    				System.out.println("写文件啦 ，写：" + filewriteNumber + "  接收到的：" + packetList.get(filereadNumber).getSerialNumber());
-			
 		    			}
 		    			if (filewriteNumber == packetList.get(filereadNumber).getSerialNumber()) {
 		    				out.write(packetList.get(filereadNumber).getData());
@@ -139,7 +151,6 @@ public class ReceiveService {
 		    				}
 		    			}	
 		    			filereadNumber = (filereadNumber+1)%LISTSIZE;
-			    		    			
 		    		}		    		
 		    	}
 		    	out.close();

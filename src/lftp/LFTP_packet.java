@@ -17,7 +17,7 @@ public class LFTP_packet {
 		System.arraycopy(packet, 6, number2, 0, 4);
 		head = new LFTP_head(number, packet[4], packet[5], number2, packet[10]);
 
-		byte[] pac = new byte[packet.length-6];
+		byte[] pac = new byte[packet.length-HEADSIZE];
 		System.arraycopy(packet, HEADSIZE, pac, 0, packet.length-HEADSIZE);
 		this.packet = pac;
 	}

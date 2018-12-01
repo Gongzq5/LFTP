@@ -5,7 +5,6 @@ import java.io.FileOutputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -79,6 +78,7 @@ public class ReceiveService {
 //						System.out.println("等待接收");
 						datagramSocket.receive(datagramPacket);
 						LFTP_packet tem = new LFTP_packet(receMsgs);
+						System.out.println("源文件：  " + receMsgs.length + "  接受到文件大小：   " + tem.getData().length);
 						
 						if (recievedPackets.containsKey(tem.getSerialNumber())) {
 							continue;
@@ -87,7 +87,7 @@ public class ReceiveService {
 						}
 						
 //						String string = new String(tem.getData(), 0 , tem.getData().length);
-						System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个");	
+						
 						
 						if (packetList.size() > receiveBase)
 							packetList.set(receiveBase, tem);
@@ -105,7 +105,7 @@ public class ReceiveService {
 			            		datagramPacket.getPort());
 			            datagramSocket.send(sendPacket);
 //			            System.out.println(sendPacket.getAddress() + "  " + sendPacket.getPort());
-
+			            System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个" + ", 发回了：" + tem2.getSerialNumber());	
 						if (tem.getIslast() == 1)
 							break;						
 						
@@ -130,17 +130,19 @@ public class ReceiveService {
 	    		out = new FileOutputStream(src);    	
 		    	while(true) {
 		    		if (filereadNumber == receiveBase) {
-		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase);
+		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
 		    			Thread.sleep(10);
 		    		} else {
-		    			if (filewriteNumber%200 == 0) {
+//		    			if (filewriteNumber%200 == 0) {
 		    				System.out.println("写文件啦 ，写：" + filewriteNumber + "  接收到的：" + packetList.get(filereadNumber).getSerialNumber());
-		    			}
+//		    			}
 		    			if (filewriteNumber == packetList.get(filereadNumber).getSerialNumber()) {
-		    				out.write(packetList.get(filereadNumber).getData());
-		    				filewriteNumber ++;
 		    				if (packetList.get(filereadNumber).getIslast() == 1)
 		    					break;
+		    				out.write(packetList.get(filereadNumber).getData());
+		    				System.out.println(packetList.get(filereadNumber).getData().length);
+		    				filewriteNumber ++;
+		    				
 		    			} else {
 		    				packet.put(packetList.get(filereadNumber).getSerialNumber(), 
 		    						packetList.get(filereadNumber));
@@ -161,8 +163,7 @@ public class ReceiveService {
 	            		datagramPacket.getPort());
 	            datagramSocket.send(sendPacket);
 	            datagramSocket.close();
-		    	
-		    	
+		    			    	
 	    	
 	    	} catch(Exception e) {	 
 	    		e.printStackTrace();
@@ -171,7 +172,7 @@ public class ReceiveService {
 	}
 		
 	public static void main(String[] args) throws UnknownHostException {
-		ReceiveService test = new ReceiveService(5066, "D:\\b.txt");
+		ReceiveService test = new ReceiveService(5066, "C:\\Users\\LENOVO\\Desktop\\receive.txt");
 		test.receive();
 	}
 }

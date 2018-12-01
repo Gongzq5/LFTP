@@ -6,11 +6,8 @@ import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +94,7 @@ public class SendService {
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
 						datagramSocket.send(datagramPacket);
-						System.out.println("chongfa" + packet.getSerialNumber());
+						System.out.println("重发    " + packet.getSerialNumber());
 					}
 //					System.out.println("即将发送2： " + nextSeqNumber);
 					boolean willSend = false;
@@ -128,7 +125,8 @@ public class SendService {
 					} else {					
 						Thread.sleep(10);
 					}
-					System.out.println("已发送：(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase + " " +
+					if (packetList.size() >sendBase)
+						System.out.println("已发送：(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase + " " +
 							packetList.get(sendBase).getSerialNumber() + "   "  + " fileNumber: " + fileNumber + "   " + willSend);
 				}
 				timer.cancel();
@@ -164,14 +162,14 @@ public class SendService {
 					}
 					
 					if (packet.getAck() == 1) {
-						String string = new String(packet.getData(), 0 , packet.getData().length);
+//						String string = new String(packet.getData(), 0 , packet.getData().length);
 						System.out.println("接收到了:  " + packet.getSerialNumber());	
 					}
 					
 					boolean ackInWindow = false;
 					if (packet.getAck() == 1 
-							&& ((packet.getSerialNumber() >= sendBase && packet.getSerialNumber() <= sendBase+windowSize)
-							|| (packet.getSerialNumber() < sendBase && packet.getSerialNumber() <= (sendBase+windowSize)%LISTSIZE) )) {
+							&& ((packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() && packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize)
+							|| (packet.getSerialNumber() < packetList.get(sendBase).getSerialNumber() && packet.getSerialNumber() <= (packetList.get(sendBase).getSerialNumber()+windowSize)%LISTSIZE) )) {
 						ackInWindow = true;
 					}
 					
@@ -180,7 +178,7 @@ public class SendService {
 						sendBase = (sendBase+1)%LISTSIZE;
 						// sendBase递增，然后查看下一个sendBase是否被确认过
 						// 是的话递增，直到一个sendBase没有被确认为止
-						while (unUsedAck.containsKey(packetList.get(sendBase).getSerialNumber())) {
+						while (packetList.size() > sendBase && unUsedAck.containsKey(packetList.get(sendBase).getSerialNumber())) {
 							unUsedAck.remove(packetList.get(sendBase).getSerialNumber());
 							sendBase = (sendBase+1)%LISTSIZE;
 						}
@@ -209,14 +207,22 @@ public class SendService {
 		    	for (int i = 0; ; i++) {
 		    		if ((fileNumber+1)%LISTSIZE == sendBase) {
 		    			Thread.sleep(10);
-//		    			System.out.println("空间已满，等待发送");
 		    			i--;
 		    		} else {
 		    			byte[] car = new byte[READSIZE];
-		    			if (is.read(car) != -1) {		    				
-		    				LFTP_packet tem = new LFTP_packet(i, 0, 0, 256, 0, car);
-		    				if (fileNumber == 0)
-		    					System.out.println("读取文件  存到 " + fileNumber + " 此时SendBase： " + sendBase + " 文 件号：" + i);
+		    			int readsize = 0;
+		    			if ((readsize = is.read(car)) != -1) {	
+		    				LFTP_packet tem ;
+		    				if (readsize < READSIZE) {
+		    					byte[] removeZero = new byte[readsize];;
+		    					System.arraycopy(car, 0, removeZero, 0, readsize);
+		    					tem = new LFTP_packet(i, 0, 0, 256, 0, removeZero);
+		    				} else {
+		    					tem = new LFTP_packet(i, 0, 0, 256, 0, car);
+		    				}
+		    				System.out.println(tem.getData().length);
+//		    				if (fileNumber == 0)
+//		    					System.out.println("读取文件  存到 " + fileNumber + " 此时SendBase： " + sendBase + " 文 件号：" + i);
 		    				if (packetList.size() > fileNumber) {
 		    					packetList.set(fileNumber, tem);
 		    				} else {
@@ -225,7 +231,8 @@ public class SendService {
 		    				fileNumber = (fileNumber+1)%LISTSIZE;
 		    			} else {
 		    				is.close();
-		    				LFTP_packet tem = new LFTP_packet(i, 1, 0, 256, 0, car);
+		    				byte[] empty = new byte[0];
+		    				LFTP_packet tem = new LFTP_packet(i, 1, 0, 256, 0, empty);
 		    				if (packetList.size() > fileNumber) {
 		    					packetList.set(fileNumber, tem);
 		    				} else {
@@ -246,20 +253,39 @@ public class SendService {
 		@Override
 		public void run() {
 			long curr = System.currentTimeMillis();
-			for (int i = sendBase; i < nextSeqNumber; i=(i+1)%LISTSIZE) {
-				LFTP_packet packet = packetList.get(i);
-				if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
-					reSendQueue.add(packet);
-					System.out.println("add " + packet.getSerialNumber() + " to the resend queue");
+			int end = nextSeqNumber;
+			if (sendBase > nextSeqNumber) {
+				for (int i = sendBase; i < LISTSIZE; i++) {
+					LFTP_packet packet = packetList.get(i);
+					if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
+						reSendQueue.add(packet);
+						System.out.println("add " + packet.getSerialNumber() + " to the resend queue");
+					}
+				}
+				for (int i = 0; i < nextSeqNumber; i++) {
+					LFTP_packet packet = packetList.get(i);
+					if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
+						reSendQueue.add(packet);
+						System.out.println("add " + packet.getSerialNumber() + " to the resend queue");
+					}
+				}
+			} else {
+				for (int i = sendBase; i < nextSeqNumber; i=(i+1)%LISTSIZE) {
+					LFTP_packet packet = packetList.get(i);
+					if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
+						reSendQueue.add(packet);
+						System.out.println("add " + packet.getSerialNumber() + " to the resend queue");
+					}
 				}
 			}
+			
 //			System.out.println("COUNTER END=====================");
 		}
 	}
 	
 	public static void main(String[] args) throws UnknownHostException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "D:\\c.txt");
+		SendService test = new SendService(inetAddress, "C:\\Users\\LENOVO\\Desktop\\send2.txt");
 		test.send();
 	}
 }

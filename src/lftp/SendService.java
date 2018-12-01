@@ -167,17 +167,22 @@ public class SendService {
 						String string = new String(packet.getData(), 0 , packet.getData().length);
 						System.out.println("接收到了:  " + packet.getSerialNumber());	
 					}
-
+					
+					boolean ackInWindow = false;
+					if (packet.getAck() == 1 
+							&& ((packet.getSerialNumber() >= sendBase && packet.getSerialNumber() <= sendBase+windowSize)
+							|| (packet.getSerialNumber() < sendBase && packet.getSerialNumber() <= (sendBase+windowSize)%LISTSIZE) )) {
+						ackInWindow = true;
+					}
+					
 					// 如果收到来自接收方的ack,那么更新sendBase,否则把他加入到unUsedAck里
-					if (packet.getAck() == 1 && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {
+					if (ackInWindow && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {
 						sendBase = (sendBase+1)%LISTSIZE;
 						// sendBase递增，然后查看下一个sendBase是否被确认过
-						// 是的话递增，直到一个sendBase没有被确认为止ֹ
-						if (!unUsedAck.isEmpty()) {
-							while (unUsedAck.containsKey(packetList.get(sendBase).getSerialNumber())) {
-								unUsedAck.remove(packetList.get(sendBase).getSerialNumber());
-								sendBase = (sendBase+1)%LISTSIZE;
-							}
+						// 是的话递增，直到一个sendBase没有被确认为止
+						while (unUsedAck.containsKey(packetList.get(sendBase).getSerialNumber())) {
+							unUsedAck.remove(packetList.get(sendBase).getSerialNumber());
+							sendBase = (sendBase+1)%LISTSIZE;
 						}
 					} else if (packet.getAck() == 1) {
 						unUsedAck.put(packet.getSerialNumber(), true);

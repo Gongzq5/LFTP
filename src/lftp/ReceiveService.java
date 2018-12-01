@@ -87,7 +87,7 @@ public class ReceiveService {
 						}
 						
 //						String string = new String(tem.getData(), 0 , tem.getData().length);
-//						System.out.println("接收到了: ？" + string);	
+						System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个");	
 						
 						if (packetList.size() > receiveBase)
 							packetList.set(receiveBase, tem);

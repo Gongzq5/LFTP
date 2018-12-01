@@ -35,6 +35,8 @@ public class ReceiveService {
     
     private Map<Integer, Boolean> recievedPackets = new HashMap<>();
 	
+    private boolean receiveOver = false;
+    
 	public ReceiveService(int port, String path) {
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
 		PORT_NUM = port;
@@ -50,6 +52,7 @@ public class ReceiveService {
 		if (recieveThread == null) {
 			recieveThread = new RecieveThread();
 			recieveThread.start();
+			receiveOver = false;
 		}
 	}
 	
@@ -62,15 +65,13 @@ public class ReceiveService {
 				datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
 				while (true) {
 					boolean willReceive = false;
-//					if (nextSeqNumber >= fileNumber) {
-//						willSend = false;
-//					} else 
-					System.out.println("recieve base " + receiveBase + "  file read number " + filereadNumber);
 					if (receiveBase < filereadNumber) {
 						willReceive = ((filereadNumber + windowSize) % LISTSIZE > receiveBase);
 					} else {
 						willReceive = ((filereadNumber + windowSize) > receiveBase);
 					}
+					System.out.println("recieve base " + receiveBase + "  file read number " + filereadNumber + 
+							" will receive   " + willReceive);
 					if (!willReceive) {
 //						System.out.println("sleep");
 						Thread.sleep(3);
@@ -106,9 +107,9 @@ public class ReceiveService {
 			            datagramSocket.send(sendPacket);
 //			            System.out.println(sendPacket.getAddress() + "  " + sendPacket.getPort());
 			            System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个" + ", 发回了：" + tem2.getSerialNumber());	
-						if (tem.getIslast() == 1)
-							break;						
-						
+//						if (tem.getIslast() == 1)
+//							break;
+			            if (receiveOver) break;
 					}
 				}
 //				datagramSocket.close();
@@ -163,7 +164,8 @@ public class ReceiveService {
 	            		datagramPacket.getPort());
 	            datagramSocket.send(sendPacket);
 	            datagramSocket.close();
-		    			    	
+	            
+	            receiveOver = true;
 	    	
 	    	} catch(Exception e) {	 
 	    		e.printStackTrace();
@@ -172,7 +174,7 @@ public class ReceiveService {
 	}
 		
 	public static void main(String[] args) throws UnknownHostException {
-		ReceiveService test = new ReceiveService(5066, "C:\\Users\\LENOVO\\Desktop\\receive.txt");
+		ReceiveService test = new ReceiveService(5066, "D:\\c.txt");
 		test.receive();
 	}
 }

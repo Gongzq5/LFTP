@@ -94,7 +94,7 @@ public class SendService {
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
 						datagramSocket.send(datagramPacket);
-						System.out.println("重发    " + packet.getSerialNumber());
+						System.out.println("重发    " + packet.getSerialNumber() + "时间  " + packet.getTime());
 					}
 //					System.out.println("即将发送2： " + nextSeqNumber);
 					boolean willSend = false;
@@ -188,7 +188,6 @@ public class SendService {
 				}
 				isSending = false;
 				datagramSocket.close();
-//				System.out.println("fsdfad");
 			} catch (Exception e) {
 				e.printStackTrace();
 //				System.out.println("接收出错");
@@ -274,18 +273,26 @@ public class SendService {
 					LFTP_packet packet = packetList.get(i);
 					if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
 						reSendQueue.add(packet);
-						System.out.println("add " + packet.getSerialNumber() + " to the resend queue");
+						System.out.println("add " + packet.getSerialNumber() + " to the resend queue\n"
+								+ "它的时间是   " + packet.getTime());
 					}
 				}
 			}
-			
-//			System.out.println("COUNTER END=====================");
 		}
 	}
 	
 	public static void main(String[] args) throws UnknownHostException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "C:\\Users\\LENOVO\\Desktop\\send2.txt");
+		SendService test = new SendService(inetAddress, "D:\\b.txt");
 		test.send();
 	}
 }
+
+
+//重发 327 1543646947601
+//添加 327 1543646947601
+//
+//重发 327 1543646947807
+//添加 327 1543646947807
+//
+//重发 327 1543646948010

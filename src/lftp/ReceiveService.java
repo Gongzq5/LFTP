@@ -142,15 +142,14 @@ public class ReceiveService {
 		    					break;
 		    				out.write(packetList.get(filereadNumber).getData());
 		    				System.out.println(packetList.get(filereadNumber).getData().length);
-		    				filewriteNumber ++;
-		    				
+		    				filewriteNumber++;
 		    			} else {
 		    				packet.put(packetList.get(filereadNumber).getSerialNumber(), 
 		    						packetList.get(filereadNumber));
 		    				while (packet.containsKey(filewriteNumber)) {
 		    					out.write(packet.get(filewriteNumber).getData());		    					
 		    					packet.remove(filewriteNumber);
-		    					filewriteNumber ++;
+		    					filewriteNumber++;
 		    				}
 		    			}	
 		    			filereadNumber = (filereadNumber+1)%LISTSIZE;

@@ -1,7 +1,7 @@
 package lftp;
 
 public class LFTP_packet {
-	private static final int HEADSIZE = 11;
+	private static final int HEADSIZE = 15;
 	private LFTP_head head;
 	private byte[] packet;
 	private State state;
@@ -13,17 +13,19 @@ public class LFTP_packet {
 	public LFTP_packet(byte[] packet) {
 		byte[] number = new byte[4];
 		byte[] number2 = new byte[4];
+		byte[] number3 = new byte[4];
 		System.arraycopy(packet, 0, number, 0, 4);
 		System.arraycopy(packet, 6, number2, 0, 4);
-		head = new LFTP_head(number, packet[4], packet[5], number2, packet[10]);
-
+		System.arraycopy(packet, 11, number3, 0, 4);
+		head = new LFTP_head(number, packet[4], packet[5], number2, packet[10], number3);
+		
 		byte[] pac = new byte[packet.length-HEADSIZE];
 		System.arraycopy(packet, HEADSIZE, pac, 0, packet.length-HEADSIZE);
 		this.packet = pac;
 	}
 	
-	public LFTP_packet(int number, int islast, int ack, int receive_widow, int isfinal, byte[] packet) {
-		LFTP_head tem = new LFTP_head(number, islast, ack, receive_widow, isfinal);
+	public LFTP_packet(int number, int islast, int ack, int receive_widow, int isfinal, int length, byte[] packet) {
+		LFTP_head tem = new LFTP_head(number, islast, ack, receive_widow, isfinal , length);
 		this.head = tem;
 		this.packet = packet;
 	}
@@ -56,6 +58,10 @@ public class LFTP_packet {
 		return head.getIsfinal_int();
 	}
 	
+	public int getLength() {
+		return head.getLength_int();
+	}
+	
 	public int getAck() {
 		return head.getAck_int();
 	}
@@ -83,13 +89,14 @@ public class LFTP_packet {
 	
 	
 	public static void main(String[] args) {
-		LFTP_packet test = new LFTP_packet(10, 0, 0, 120, 1, "test".getBytes());
+		LFTP_packet test = new LFTP_packet(10, 0, 0, 120, 1, 4081, "test".getBytes());
 		
 		System.out.println(test.getSerialNumber());
 		System.out.println(test.getIslast());
 		System.out.println(test.getAck());
 		System.out.println(test.getReceiveWindow());
 		System.out.println(test.getIsfinal());
+		System.out.println(test.getLength());
 		String string = new String(test.getData(), 0, test.getData().length);
 		System.out.println(string);
 		System.out.println(test.tobyte().length);
@@ -102,6 +109,7 @@ public class LFTP_packet {
 		System.out.println(test2.getAck());
 		System.out.println(test2.getReceiveWindow());
 		System.out.println(test2.getIsfinal());
+		System.out.println(test2.getLength());
 		String string2 = new String(test2.getData(), 0, test2.getData().length);
 		System.out.println(string2);
 		System.out.println(test2.tobyte().length);

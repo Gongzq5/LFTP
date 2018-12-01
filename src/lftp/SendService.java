@@ -19,8 +19,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class SendService {
 	private static final int LISTSIZE = 256; //256
-	private static final int READSIZE = 4085;  //4085
-	private static final int HEADSIZE = 11;
+	private static final int READSIZE = 4081;  //4085
+	private static final int HEADSIZE = 15;
 	
 	private List<LFTP_packet> packetList = null;
 	private SendThread sendThread = null;
@@ -117,8 +117,9 @@ public class SendService {
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
 //						datagramSocket.setReuseAddress(true); 
-//						System.out.println("发送");
+						System.out.println("发送包长度： " + packet.tobyte().length + "  " + packet.getLength());
 						datagramSocket.send(datagramPacket);
+
 //						System.out.println(datagramPacket.getAddress() + "  " + datagramPacket.getPort());
 
 						nextSeqNumber = (nextSeqNumber+1) % LISTSIZE;
@@ -216,11 +217,12 @@ public class SendService {
 		    				if (readsize < READSIZE) {
 		    					byte[] removeZero = new byte[readsize];;
 		    					System.arraycopy(car, 0, removeZero, 0, readsize);
-		    					tem = new LFTP_packet(i, 0, 0, 256, 0, removeZero);
+		    					tem = new LFTP_packet(i, 0, 0, 256, 0, readsize, removeZero);
 		    				} else {
-		    					tem = new LFTP_packet(i, 0, 0, 256, 0, car);
+		    					tem = new LFTP_packet(i, 0, 0, 256, 0, READSIZE, car);
 		    				}
-		    				System.out.println(tem.getData().length);
+		    				
+		    				System.out.println(tem.getData().length + "  " + tem.getLength());
 //		    				if (fileNumber == 0)
 //		    					System.out.println("读取文件  存到 " + fileNumber + " 此时SendBase： " + sendBase + " 文 件号：" + i);
 		    				if (packetList.size() > fileNumber) {
@@ -232,7 +234,7 @@ public class SendService {
 		    			} else {
 		    				is.close();
 		    				byte[] empty = new byte[0];
-		    				LFTP_packet tem = new LFTP_packet(i, 1, 0, 256, 0, empty);
+		    				LFTP_packet tem = new LFTP_packet(i, 1, 0, 256, 0, 0, empty);
 		    				if (packetList.size() > fileNumber) {
 		    					packetList.set(fileNumber, tem);
 		    				} else {
@@ -253,7 +255,6 @@ public class SendService {
 		@Override
 		public void run() {
 			long curr = System.currentTimeMillis();
-			int end = nextSeqNumber;
 			if (sendBase > nextSeqNumber) {
 				for (int i = sendBase; i < LISTSIZE; i++) {
 					LFTP_packet packet = packetList.get(i);

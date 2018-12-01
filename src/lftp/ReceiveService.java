@@ -14,8 +14,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ReceiveService {
 	private static final int LISTSIZE = 256; //256
-	private static final int WRITESIZE = 4085;  //4085
-	private static final int HEADSIZE = 11;
+	private static final int WRITESIZE = 4081;  //4081
+	private static final int HEADSIZE = 15;
 	private List<LFTP_packet> packetList = null;
 
 	private RecieveThread recieveThread = null;
@@ -62,9 +62,7 @@ public class ReceiveService {
 				datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
 				while (true) {
 					boolean willReceive = false;
-//					if (nextSeqNumber >= fileNumber) {
-//						willSend = false;
-//					} else 
+
 					System.out.println("recieve base " + receiveBase + "  file read number " + filereadNumber);
 					if (receiveBase < filereadNumber) {
 						willReceive = ((filereadNumber + windowSize) % LISTSIZE > receiveBase);
@@ -77,8 +75,13 @@ public class ReceiveService {
 					} else {				
 //						System.out.println("等待接收");
 						datagramSocket.receive(datagramPacket);
-						LFTP_packet tem = new LFTP_packet(receMsgs);
-						System.out.println("源文件：  " + receMsgs.length + "  接受到文件大小：   " + tem.getData().length);
+//						LFTP_packet tem = new LFTP_packet(receMsgs);
+						LFTP_packet tem = new LFTP_packet(datagramPacket.getData());
+						
+						
+//						LFTP_packet tem3 = new LFTP_packet(tem.getSerialNumber(), tem.getIslast(), tem.getAck(),
+//								tem.getReceiveWindow(), tem.getIsfinal(), tem.getLength(), );
+//						System.out.println("源文件：  " + receMsgs.length + "  接受到文件大小：   " + tem.getData().length + "  " + tem.getLength());
 						
 						if (recievedPackets.containsKey(tem.getSerialNumber())) {
 							continue;
@@ -99,7 +102,7 @@ public class ReceiveService {
 //						System.out.println("接收后：" + receiveBase);
 
 						LFTP_packet tem2 = new LFTP_packet(tem.getSerialNumber(), 0, 1,
-								windowSize, 0, "ok".getBytes());
+								windowSize, 0, 2, "ok".getBytes());
 			            DatagramPacket sendPacket = new DatagramPacket(tem2.tobyte(), 
 			            		tem2.tobyte().length, datagramPacket.getAddress(), 
 			            		datagramPacket.getPort());
@@ -139,7 +142,14 @@ public class ReceiveService {
 		    			if (filewriteNumber == packetList.get(filereadNumber).getSerialNumber()) {
 		    				if (packetList.get(filereadNumber).getIslast() == 1)
 		    					break;
-		    				out.write(packetList.get(filereadNumber).getData());
+		    				if (packetList.get(filereadNumber).getLength() != WRITESIZE) {
+		    					byte[] tem = new byte[packetList.get(filereadNumber).getLength()];
+		    					System.arraycopy(packetList.get(filereadNumber).getData(), 0, tem, 0, packetList.get(filereadNumber).getLength());
+		    					out.write(tem);
+		    					System.out.println("写文件长度： " +  tem.length + "  " + packetList.get(filereadNumber).getLength());
+		    				} else {
+		    					out.write(packetList.get(filereadNumber).getData());
+		    				}
 		    				System.out.println(packetList.get(filereadNumber).getData().length);
 		    				filewriteNumber ++;
 		    				
@@ -157,7 +167,7 @@ public class ReceiveService {
 		    	}
 		    	out.close();
 		    	
-		    	LFTP_packet final_pac = new LFTP_packet(0, 1, 1, 0, 1, "final".getBytes());
+		    	LFTP_packet final_pac = new LFTP_packet(0, 1, 1, 0, 1, 5, "final".getBytes());
 		    	DatagramPacket sendPacket = new DatagramPacket(final_pac.tobyte(), 
 		    			final_pac.tobyte().length, datagramPacket.getAddress(), 
 	            		datagramPacket.getPort());

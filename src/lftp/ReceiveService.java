@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.InterruptedIOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,8 +15,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ReceiveService {
-	private static final int LISTSIZE = 256; //256
-	private static final int WRITESIZE = 4081;  //4081
+	private static final int LISTSIZE = 256;
+	private static final int WRITESIZE = 4081;
 	private static final int HEADSIZE = 15;
 	private static final int TIMEOUT = 5000;
 	
@@ -32,7 +33,6 @@ public class ReceiveService {
 	private int filereadNumber = 0;
 	private int filewriteNumber = 0;
 	private Map<Integer, LFTP_packet> packet = new ConcurrentHashMap<Integer, LFTP_packet>();
-	private int PORT_NUM = 5066;
 	
 	private String path = null;
 	private byte[] receMsgs = new byte[WRITESIZE+HEADSIZE];
@@ -46,9 +46,22 @@ public class ReceiveService {
     
 	public ReceiveService(int port, String path) {
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
-		PORT_NUM = port;
+		this.path = path;
+
+		try {
+			datagramSocket = new DatagramSocket(port);
+		} catch (SocketException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public ReceiveService(DatagramSocket datagramSocket, String path) {
+		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
+		this.datagramSocket = datagramSocket;
 		this.path = path;
 	}
+	
+
 	
 	public void receive() throws UnknownHostException {
 		if (fileThread == null) {
@@ -68,7 +81,6 @@ public class ReceiveService {
 		@Override
 		public void run() {
 			try {
-				datagramSocket = new DatagramSocket(PORT_NUM);
 				datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
 				datagramSocket.setSoTimeout(TIMEOUT);
 				while (!filewriteOver) {
@@ -214,9 +226,12 @@ public class ReceiveService {
 	    }
 	}
 		
-	public static void main(String[] args) throws UnknownHostException {
+	public static void main(String[] args) throws UnknownHostException, SocketException {
+		DatagramSocket datagramSocket;
+		datagramSocket = new DatagramSocket(5066);
+		
 
-		ReceiveService test = new ReceiveService(5066, "test\\dst10m.txt");
+		ReceiveService test = new ReceiveService(datagramSocket, "test\\dst10m.txt");
 
 		test.receive();
 	}

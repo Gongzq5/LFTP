@@ -33,7 +33,7 @@ public class SendService {
 	private int nextSeqNumber = 0;
 	private boolean isSending = false;
 	private int windowSize = 128; //128
-	private long timeOut = 200;
+	private long timeOut = 1000;
 	
 	private String path = null;
 	private int port = 5066;
@@ -49,7 +49,6 @@ public class SendService {
 		
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
 		unUsedAck = new ConcurrentHashMap<Integer, Boolean>();
-//		reSendQueue = new LinkedList<>();
 		reSendQueue = new ConcurrentLinkedQueue<>();
 	}
 	
@@ -145,33 +144,25 @@ public class SendService {
 		@Override
 		public void run() {
 			try {
-//				DatagramSocket datagramSocket = new DatagramSocket(port);
-//				datagramSocket.setReuseAddress(true); 
-//				datagramSocket.bind(new InetSocketAddress(inetAddress, port));
-				
-//				datagramSocket.bind(new InetSocketAddress(port));
-				Thread.sleep(10);
+				sleep(10);
 				while (true) {
-//					System.out.println("等待接收: "+ sendBase);
+					System.out.println("Waiting for receive in receive...");
 					datagramSocket.receive(datagramPacket);
-					
-//					byte[] data = datagramPacket.getData();
 					LFTP_packet packet = new LFTP_packet(receMsgs);
-					
 					if (packet.getIsfinal() == 1) {
 						break;
 					}
 					
 					if (packet.getAck() == 1) {
-//						String string = new String(packet.getData(), 0 , packet.getData().length);
-						System.out.println("接收到了:  " + packet.getIsfinal());	
+						System.out.println("接收到了:  " + packet.getSerialNumber());	
 					}
 					
 					boolean ackInWindow = false;
+					
 					if (packet.getAck() == 1 
 							&& ((packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() 
-									&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize)
-							 )) {
+									&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize))) {
+
 						ackInWindow = true;
 					}
 //					if (packet.getAck() == 1 
@@ -182,6 +173,7 @@ public class SendService {
 //							ackInWindow = true;
 //						}
 					
+					System.out.println("ACK in Window  " + ackInWindow);
 					// 如果收到来自接收方的ack,那么更新sendBase,否则把他加入到unUsedAck里
 					if (ackInWindow && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {
 						sendBase = (sendBase+1)%LISTSIZE;
@@ -199,7 +191,6 @@ public class SendService {
 				datagramSocket.close();
 			} catch (Exception e) {
 				e.printStackTrace();
-//				System.out.println("接收出错");
 			}
 		}
 	}
@@ -230,8 +221,6 @@ public class SendService {
 		    				}
 		    				
 		    				System.out.println(tem.getData().length + "  " + tem.getLength());
-//		    				if (fileNumber == 0)
-//		    					System.out.println("读取文件  存到 " + fileNumber + " 此时SendBase： " + sendBase + " 文 件号：" + i);
 		    				if (packetList.size() > fileNumber) {
 		    					packetList.set(fileNumber, tem);
 		    				} else {
@@ -292,7 +281,7 @@ public class SendService {
 	
 	public static void main(String[] args) throws UnknownHostException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "C:\\Users\\LENOVO\\Desktop\\send2.pdf");
+		SendService test = new SendService(inetAddress, "test\\src10m.txt");
 		test.send();
 	}
 }

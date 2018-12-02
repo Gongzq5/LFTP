@@ -131,16 +131,6 @@ public class LFTP_head {
 		System.out.println(test.getIsfinal_int());
 		System.out.println(test.getLength_int());
 		
-//		for (int i = 0; i < test.getSerialNumber_byte().length; i++) {
-//			System.out.println(test.getSerialNumber_byte()[i]);
-//		}
 		System.out.println();
-		
-//		byte[] test2 = test.tobyte();
-//		for (int i = 0; i < test2.length; i++) {
-//			System.out.println(test2[i]);
-//		}
-		
-	
 	}
 }

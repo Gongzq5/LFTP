@@ -113,7 +113,7 @@ public class Client {
 					System.out.println("Response time out, request resent " + ++timeOutTimes + "th times. Waiting for response...");
 				}
 			}
-			System.out.println("Data transfer over, save in D:\\RCV.txt");
+			System.out.println("Data transfer over, save in test\\RCV.txt");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

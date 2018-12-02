@@ -186,7 +186,7 @@ public class ReceiveService {
 		    	while(true) {
 		    		
 		    		if (filereadNumber == receiveBase) {
-		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
+//		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
 		    			Thread.sleep(10);
 		    		} else {
 		    			System.out.println("写文件啦 ，写：" + filewriteNumber + "  接收到的：" + packetList.get(filereadNumber).getSerialNumber() + " is last " + 

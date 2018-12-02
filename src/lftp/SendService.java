@@ -88,7 +88,7 @@ public class SendService {
 				datagramSocket = new DatagramSocket();
 				while (isSending) {
 					// 先发重传的包
-					if (!reSendQueue.isEmpty()) {
+					while (!reSendQueue.isEmpty()) {
 						LFTP_packet packet = reSendQueue.poll();
 						packet.setTime(System.currentTimeMillis());
 						DatagramPacket datagramPacket = new DatagramPacket(

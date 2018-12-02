@@ -154,9 +154,7 @@ public class ReceiveService {
 		    	while (true) {
 			    	datagramSocket.send(sendPacket);
 			    	try {
-			    		System.out.println("ReceiveService final");
 			    		datagramSocket.receive(datagramPacket);
-			    		System.out.println("ReceiveService get final");
 			    		if ((new LFTP_packet(datagramPacket.getData())).getIsfinal() == 1) {
 			    			break;
 			    		}

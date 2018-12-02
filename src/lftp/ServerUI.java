@@ -5,6 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,12 +66,6 @@ public class ServerUI {
 		System.arraycopy(address.getAddress(), 0, buf, "ACK".getBytes().length, 4);
 		System.arraycopy(LFTP_head.IntToByte(port), 0, buf, "ACK".getBytes().length+4, 4);
 		
-
-//		System.out.println(Arrays.toString(address.getAddress()));
-		
-		byte[] addressByte = new byte[4];
-		System.arraycopy(buf, 3, addressByte, 0, 4);
-		System.out.println("address " + Arrays.toString(addressByte));
 		
         DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, address, port);
         
@@ -83,23 +78,22 @@ public class ServerUI {
 	
 	public void receiveFile(String path, InetAddress address, int port) {
 		if (address2receivetime.containsKey(address)) {
+			System.out.println("adfadf");
 			address2receivetime.put(address, System.currentTimeMillis());			
 		} else {
 			address2path.put(address, path);		
 			System.out.println(" path: " + path);
 			
-			DatagramSocket ds = null;
-			for(int i = 5001; i < 65536; i++){				
-				try {
-					ds = new DatagramSocket(i);
-					break;
-				} catch (SocketException e) {
-					
-				}				
-			}
+			DatagramSocket ds = null;			
+			try {
+				ds = new DatagramSocket();
+			} catch (SocketException e) {
+				
+			}	
 			address2Socket.put(address, ds);			
 			address2receivetime.put(address, System.currentTimeMillis());
 			
+			System.out.println(ds.getLocalPort());
 			
 			byte[] buf = new byte[1024];
 			System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
@@ -122,7 +116,8 @@ public class ServerUI {
 			for (InetAddress address : address2sendtime.keySet()) {
 				if (curr - address2sendtime.get(address) > timeOut) {					
 		    		try {
-						new SendService(address, address2port.get(address), address2path.get(address)).send();
+		    			new send(address, address2port.get(address), address2path.get(address)).start();;
+//						new SendService(address, address2port.get(address), address2path.get(address)).send();
 						System.out.println("send over");
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -137,7 +132,9 @@ public class ServerUI {
 			for (InetAddress address : address2receivetime.keySet()) {
 				if (curr - address2receivetime.get(address) > timeOut) {					
 		    		try {
-		    			new ReceiveService(address2Socket.get(address), address2path.get(address)).receive();
+//		    			new ReceiveService(address2Socket.get(address), address2path.get(address)).receive();
+//		    			new ReceiveService(address2Socket.get(address), "test\\dst10m.txt").receive();
+		    			new receive(address2Socket.get(address), address2path.get(address)).start();
 		    			System.out.println("receive over");
 		    		} catch (Exception e) {
 						e.printStackTrace();
@@ -151,10 +148,50 @@ public class ServerUI {
 		}
 	}
 	
+	public class send extends Thread {
+		InetAddress address = null;
+		int port = 0;
+		String path;
+		
+		public send (InetAddress address, int port, String path) {
+			this.address = address;
+			this.port = port;
+			this.path = path;
+		}
+		@Override    
+	    public void run() {
+			try {
+				new SendService(address, port, path).send();
+			} catch (UnknownHostException | InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public class receive extends Thread {
+		DatagramSocket socket = null;
+		String path;
+		
+		public receive (DatagramSocket socket, String path) {
+			this.socket = socket;
+			this.path = path;
+		}
+		@Override    
+	    public void run() {
+			try {
+				new ReceiveService(socket, path).receive();
+			} catch (UnknownHostException | InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+	}
+	
 	public static void main(String[] args) throws IOException {
 
 		new ServerUI();		
-		//ip: 172.18.34.154
 	}
 	
 }

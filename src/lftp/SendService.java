@@ -60,7 +60,7 @@ public class SendService {
 		reSendQueue = new ConcurrentLinkedQueue<>();
 	}
 	
-	public void send() throws UnknownHostException {
+	public void send() throws UnknownHostException, InterruptedException {
 		timer = new Timer();
 		timer.schedule(new TimeCounter(), 0, 10);
 		if (fileThread == null) {
@@ -76,6 +76,10 @@ public class SendService {
 			recieveThread = new RecieveThread();
 			recieveThread.start();
 		}
+		
+		fileThread.join();
+		sendThread.join();
+		recieveThread.join();
 	}
 	
 	
@@ -296,7 +300,7 @@ public class SendService {
 		}
 	}
 	
-	public static void main(String[] args) throws UnknownHostException {
+	public static void main(String[] args) throws UnknownHostException, InterruptedException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
 		int port = 5066;
 		SendService test = new SendService(inetAddress, port, "test\\src10m.txt");

@@ -53,6 +53,7 @@ public class ReceiveService {
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}
+
 	}
 	
 	public ReceiveService(DatagramSocket datagramSocket, String path) {
@@ -63,7 +64,7 @@ public class ReceiveService {
 	
 
 	
-	public void receive() throws UnknownHostException {
+	public void receive() throws UnknownHostException, InterruptedException {
 		if (fileThread == null) {
 			fileThread = new FileThread();
 			fileThread.start();
@@ -74,6 +75,9 @@ public class ReceiveService {
 			recieveThread.start();
 			filewriteOver = false;
 		}
+		
+		fileThread.join();
+		recieveThread.join();
 	}
 	
 	private class RecieveThread extends Thread {
@@ -150,7 +154,9 @@ public class ReceiveService {
 		    	while (true) {
 			    	datagramSocket.send(sendPacket);
 			    	try {
+			    		System.out.println("ReceiveService final");
 			    		datagramSocket.receive(datagramPacket);
+			    		System.out.println("ReceiveService get final");
 			    		if ((new LFTP_packet(datagramPacket.getData())).getIsfinal() == 1) {
 			    			break;
 			    		}
@@ -226,13 +232,17 @@ public class ReceiveService {
 	    }
 	}
 		
-	public static void main(String[] args) throws UnknownHostException, SocketException {
-		DatagramSocket datagramSocket;
-		datagramSocket = new DatagramSocket(5066);
+	public static void main(String[] args) throws UnknownHostException, InterruptedException {
+		DatagramSocket datagramSocket = null;
+		try {
+			datagramSocket = new DatagramSocket(5066);
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-
+		
 		ReceiveService test = new ReceiveService(datagramSocket, "test\\dst10m.txt");
-
 		test.receive();
 	}
 }

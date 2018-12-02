@@ -12,6 +12,8 @@ package lftp;
  * 数据 4090 byte
  *  
  * 整个UDP大小  4k byte   4k*8 bit
+ * 
+ * PS : 加入版本信息 LFTP 0.1
  */
 
 

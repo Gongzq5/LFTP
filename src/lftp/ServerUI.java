@@ -6,10 +6,12 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.SynchronousQueue;
 
 public class ServerUI {	
 	private final int PORT_NUM = 5066;
@@ -34,40 +36,43 @@ public class ServerUI {
 			System.out.println("wait");
 			datagramSocket.receive(datagramPacket);								
 			String receStr = new String(datagramPacket.getData(), 0 , datagramPacket.getLength());
-						
+			int length = (int)receMsgs[3];
+			byte[] pathByte = new byte[length];
+			System.arraycopy(receMsgs, 4, pathByte, 0, length);			
+			String sendpath = new String(pathByte);
+			
+			System.out.println("length " + length + " path: " + sendpath);
+			
 			if (receStr.substring(0, 3).equals("GET")) {
-				this.sendFile(receStr, datagramPacket.getAddress(), datagramPacket.getPort());
+				this.sendFile(sendpath, datagramPacket.getAddress(), datagramPacket.getPort());
 			} else if (receStr.substring(0, 3).equals("SED")){
-				this.receiveFile(receStr, datagramPacket.getAddress(), datagramPacket.getPort());
+				this.receiveFile(sendpath, datagramPacket.getAddress(), datagramPacket.getPort());
 			}
 		}
 	}
 	
-	public void sendFile(String str, InetAddress address, int port) {
+	public void sendFile(String path, InetAddress address, int port) {
 		if (address2sendtime.containsKey(address)) {
 			address2sendtime.put(address, System.currentTimeMillis());			
 		} else {
-			int size = Integer.parseInt(str.substring(3, 4));
-			address2path.put(address, str.substring(4, 4+size));		
-			
-			address2port.put(address, port);
-			
-			address2sendtime.put(address, System.currentTimeMillis());
-			
-			System.out.println("get path size: " + size + " path: " + str.substring(4, 4+size));
+			address2path.put(address, path);					
+			address2port.put(address, port);			
+			address2sendtime.put(address, System.currentTimeMillis());						
 		}	
-		
-		String receive = new String("ACK");
-		
-		receive += new String(address.getAddress());
-		receive += new String(LFTP_head.IntToByte(port));
-		
-		System.out.println(receive);
+		System.out.println(" path: " + path);
 		
 		
-		byte[] buf = receive.getBytes();
+		byte[] buf = new byte[1024];
+		System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
+		System.arraycopy(address.getAddress(), 0, buf, "ACK".getBytes().length, 4);
+		System.arraycopy(LFTP_head.IntToByte(port), 0, buf, "ACK".getBytes().length+4, 4);
 		
-		System.out.println(new String(buf));
+
+		System.out.println(Arrays.toString(address.getAddress()));
+		
+		byte[] addressByte = new byte[4];
+		System.arraycopy(buf, 3, addressByte, 0, 4);
+		System.out.println("address " + Arrays.toString(addressByte));
 		
         DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, address, port);
         
@@ -78,13 +83,12 @@ public class ServerUI {
 		}
 	}
 	
-	public void receiveFile(String str, InetAddress address, int port) {
+	public void receiveFile(String path, InetAddress address, int port) {
 		if (address2receivetime.containsKey(address)) {
 			address2receivetime.put(address, System.currentTimeMillis());			
 		} else {
-			int size = Integer.parseInt(str.substring(3, 4));
-			address2path.put(address, str.substring(4, 4+size));		
-			System.out.println("get path size: " + size + " path: " + str.substring(4, 4+size));
+			address2path.put(address, path);		
+			System.out.println(" path: " + path);
 			
 			DatagramSocket ds = null;
 			for(int i = 5001; i < 65536; i++){				
@@ -122,7 +126,8 @@ public class ServerUI {
 				if (curr - address2sendtime.get(address) > timeOut) {					
 		    		try {
 						new SendService(address, address2port.get(address), address2path.get(address)).send();
-					} catch (UnknownHostException e) {
+						System.out.println("send over");
+					} catch (Exception e) {
 						e.printStackTrace();
 					}
 		    		
@@ -132,11 +137,12 @@ public class ServerUI {
 				}
 			}
 			
-			for (InetAddress address : address2sendtime.keySet()) {
+			for (InetAddress address : address2receivetime.keySet()) {
 				if (curr - address2receivetime.get(address) > timeOut) {					
 		    		try {
 		    			new ReceiveService(address2Socket.get(address), address2path.get(address)).receive();
-					} catch (UnknownHostException e) {
+		    			System.out.println("receive over");
+		    		} catch (Exception e) {
 						e.printStackTrace();
 					}
 		    		

@@ -187,7 +187,7 @@ public class ReceiveService {
 	}
 		
 	public static void main(String[] args) throws UnknownHostException {
-		ReceiveService test = new ReceiveService(5066, "D:\\c.txt");
+		ReceiveService test = new ReceiveService(5066, "test\\dst10m.txt");
 		test.receive();
 	}
 }

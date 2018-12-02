@@ -273,7 +273,7 @@ public class SendService {
 	
 	public static void main(String[] args) throws UnknownHostException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "D:\\b.txt");
+		SendService test = new SendService(inetAddress, "test\\src10m.txt");
 		test.send();
 	}
 }

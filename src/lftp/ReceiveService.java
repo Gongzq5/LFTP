@@ -15,8 +15,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ReceiveService {
-	private static final int LISTSIZE = 256; //256
-	private static final int WRITESIZE = 4081;  //4081
+	private static final int LISTSIZE = 256;
+	private static final int WRITESIZE = 4081;
 	private static final int HEADSIZE = 15;
 	private static final int TIMEOUT = 5000;
 	
@@ -33,7 +33,6 @@ public class ReceiveService {
 	private int filereadNumber = 0;
 	private int filewriteNumber = 0;
 	private Map<Integer, LFTP_packet> packet = new ConcurrentHashMap<Integer, LFTP_packet>();
-	private int PORT_NUM = 5066;
 	
 	private String path = null;
 	private byte[] receMsgs = new byte[WRITESIZE+HEADSIZE];
@@ -47,14 +46,14 @@ public class ReceiveService {
     
 	public ReceiveService(int port, String path) {
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
-		PORT_NUM = port;
 		this.path = path;
 
 		try {
-			datagramSocket = new DatagramSocket(PORT_NUM);
+			datagramSocket = new DatagramSocket(port);
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}
+
 	}
 	
 	public ReceiveService(DatagramSocket datagramSocket, String path) {
@@ -63,7 +62,9 @@ public class ReceiveService {
 		this.path = path;
 	}
 	
-	public void receive() throws UnknownHostException {
+
+	
+	public void receive() throws UnknownHostException, InterruptedException {
 		if (fileThread == null) {
 			fileThread = new FileThread();
 			fileThread.start();
@@ -74,6 +75,9 @@ public class ReceiveService {
 			recieveThread.start();
 			filewriteOver = false;
 		}
+		
+		fileThread.join();
+		recieveThread.join();
 	}
 	
 	private class RecieveThread extends Thread {
@@ -150,7 +154,9 @@ public class ReceiveService {
 		    	while (true) {
 			    	datagramSocket.send(sendPacket);
 			    	try {
+			    		System.out.println("ReceiveService final");
 			    		datagramSocket.receive(datagramPacket);
+			    		System.out.println("ReceiveService get final");
 			    		if ((new LFTP_packet(datagramPacket.getData())).getIsfinal() == 1) {
 			    			break;
 			    		}
@@ -226,7 +232,7 @@ public class ReceiveService {
 	    }
 	}
 		
-	public static void main(String[] args) throws UnknownHostException {
+	public static void main(String[] args) throws UnknownHostException, InterruptedException {
 		DatagramSocket datagramSocket = null;
 		try {
 			datagramSocket = new DatagramSocket(5066);
@@ -237,7 +243,6 @@ public class ReceiveService {
 		
 		
 		ReceiveService test = new ReceiveService(datagramSocket, "test\\dst10m.txt");
-		
 		test.receive();
 	}
 }

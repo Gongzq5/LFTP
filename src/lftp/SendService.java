@@ -50,8 +50,9 @@ public class SendService {
 	private Queue<LFTP_packet> reSendQueue = null;
 	private DatagramSocket datagramSocket;	
 	
-	public SendService(InetAddress inetAddress, String path) {
+	public SendService(InetAddress inetAddress, int port, String path) {
 		this.inetAddress = inetAddress;
+		this.port = port;
 		this.path = path;
 		
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
@@ -59,7 +60,7 @@ public class SendService {
 		reSendQueue = new ConcurrentLinkedQueue<>();
 	}
 	
-	public void send() throws UnknownHostException {
+	public void send() throws UnknownHostException, InterruptedException {
 		timer = new Timer();
 		timer.schedule(new TimeCounter(), 0, 10);
 		if (fileThread == null) {
@@ -75,6 +76,10 @@ public class SendService {
 			recieveThread = new RecieveThread();
 			recieveThread.start();
 		}
+		
+		fileThread.join();
+		sendThread.join();
+		recieveThread.join();
 	}
 	
 	
@@ -295,9 +300,10 @@ public class SendService {
 		}
 	}
 	
-	public static void main(String[] args) throws UnknownHostException {
+	public static void main(String[] args) throws UnknownHostException, InterruptedException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "test\\src10m.txt");
+		int port = 5066;
+		SendService test = new SendService(inetAddress, port, "test\\src10m.txt");
 		test.send();
 	}
 }

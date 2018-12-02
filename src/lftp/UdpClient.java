@@ -10,7 +10,7 @@ import java.net.UnknownHostException;
 
 public class UdpClient {
 	   
-    private String sendStr = "SendString 发送";
+    private String sendStr = "GET";
     private String netAddress = "127.0.0.1";
     private final int PORT_NUM = 5066;
     private static final int TIMEOUT = 3000; // 超时时间

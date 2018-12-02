@@ -17,6 +17,8 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import javax.xml.crypto.Data;
+
 public class SendService {
 	private static final int LISTSIZE = 256; //256
 	private static final int READSIZE = 4081;  //4085
@@ -186,6 +188,18 @@ public class SendService {
 					} else if (packet.getAck() == 1) {
 						unUsedAck.put(packet.getSerialNumber(), true);
 					}
+				}
+				
+				LFTP_packet finalAckPacket = new LFTP_packet(0, 1, 1, 0, 1, 5, "final".getBytes());
+				DatagramPacket finalAckDatagramPacket = new DatagramPacket(finalAckPacket.tobyte(), finalAckPacket.tobyte().length);
+				datagramSocket.setSoTimeout(5000);
+				try {
+					datagramSocket.receive(datagramPacket);
+					if (new LFTP_packet(datagramPacket.getData()).getIsfinal() == 1) {
+						datagramSocket.send(finalAckDatagramPacket);
+					}
+				} catch (Exception e) {
+					// nothing
 				}
 				isSending = false;
 				datagramSocket.close();

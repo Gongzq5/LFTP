@@ -120,12 +120,7 @@ public class ReceiveService {
 						} catch (InterruptedIOException e) { // 当receive不到信息或者receive时间超过3秒时，就向服务器重发请求    
 			            	System.out.println("Timed out : " + TIMEOUT );   
 			            	System.out.println(packet.size());
-			            	System.out.println(packet.size());
-			            	System.out.println(packet.size());
-			            	System.out.println(packet.size());
 			            	
-			            
-						
 						} 
 					}
 				}

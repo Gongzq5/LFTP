@@ -85,7 +85,7 @@ public class SendService {
 //				DatagramSocket datagramSocket = null;	
 				datagramSocket = new DatagramSocket();
 				while (isSending) {
-//					System.out.println("即将发送： " + nextSeqNumber);
+					System.out.println("即将发送： " + nextSeqNumber);
 					// 先发重传的包
 					while (!reSendQueue.isEmpty()) {
 						LFTP_packet packet = reSendQueue.poll();
@@ -169,10 +169,18 @@ public class SendService {
 					
 					boolean ackInWindow = false;
 					if (packet.getAck() == 1 
-							&& ((packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() && packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize)
-							|| (packet.getSerialNumber() < packetList.get(sendBase).getSerialNumber() && packet.getSerialNumber() <= (packetList.get(sendBase).getSerialNumber()+windowSize)%LISTSIZE) )) {
+							&& ((packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() 
+									&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize)
+							 )) {
 						ackInWindow = true;
 					}
+//					if (packet.getAck() == 1 
+//							&& ((packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() 
+//									&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize)
+//								|| (packet.getSerialNumber() < packetList.get(sendBase).getSerialNumber() 
+//									&& packet.getSerialNumber() <= packetList.get((sendBase+windowSize)%LISTSIZE).getSerialNumber()) )) {
+//							ackInWindow = true;
+//						}
 					
 					// 如果收到来自接收方的ack,那么更新sendBase,否则把他加入到unUsedAck里
 					if (ackInWindow && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {

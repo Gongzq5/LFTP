@@ -14,7 +14,7 @@ public class Client {
 	private static final String QUIT_COMMAND = "lquit";
 	
 	private static final String GET = "GET";
-	private static final String SEND = "SND";
+	private static final String SEND = "SED";
 	private static final String ACK = "ACK";
 	
 	private static final int CMD_LEN = 3;
@@ -156,7 +156,7 @@ public class Client {
 						String addr = Arrays.toString(addressByte);
 						if (addr.equals(Arrays.toString(InetAddress.getLocalHost().getAddress()))) {
 							byte[] portByte = new byte[4];
-							System.arraycopy(datagramPacket.getData(), 3, portByte, 0, 4);
+							System.arraycopy(datagramPacket.getData(), 7, portByte, 0, 4);
 							int targetPort = Byte2Int(portByte);
 							System.out.println("port " + targetPort);
 							
@@ -191,7 +191,7 @@ public class Client {
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}
-	}
+	} 
 }
 
 
@@ -202,4 +202,8 @@ public class Client {
  * 分配端口，给我发回来
  * 
  * lget 172.18.34.154 5066 test\\src10m.txt
+ * lget 172.18.35.215 5066 test\\src10m.txt
+ * 
+ * lsend 172.18.34.154 5066 test\\src10m.txt
+ * 
  */

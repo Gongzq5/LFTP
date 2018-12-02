@@ -2,6 +2,7 @@ package lftp;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -13,6 +14,8 @@ import java.util.IllegalFormatCodePointException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ReceiveService {
@@ -83,30 +86,29 @@ public class ReceiveService {
 						Thread.sleep(3);
 					} else {				
 						try {
-						datagramSocket.receive(datagramPacket);
-						LFTP_packet tem = new LFTP_packet(datagramPacket.getData());
-						
-						if (!recievedPackets.containsKey(tem.getSerialNumber())) {
-							recievedPackets.put(tem.getSerialNumber(), true);
-						}
-						
-						if (packetList.size() > receiveBase)
-							packetList.set(receiveBase, tem);
-						else {
-							packetList.add(receiveBase, tem);
-						}
-						receiveBase = (receiveBase+1)%LISTSIZE;
-						
-						System.out.println("接收后：" + receiveBase);
-
-						LFTP_packet tem2 = new LFTP_packet(tem.getSerialNumber(), 0, 1,
-								windowSize, 0, 2, "ok".getBytes());
-			            DatagramPacket sendPacket = new DatagramPacket(tem2.tobyte(), 
-			            		tem2.tobyte().length, datagramPacket.getAddress(), 
-			            		datagramPacket.getPort());
-			            datagramSocket.send(sendPacket);
-			            System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个" + ", 发回了：" + tem2.getSerialNumber());	
-
+							datagramSocket.receive(datagramPacket);
+							LFTP_packet tem = new LFTP_packet(datagramPacket.getData());
+							
+							if (!recievedPackets.containsKey(tem.getSerialNumber())) {
+								recievedPackets.put(tem.getSerialNumber(), true);
+							}
+							
+							if (packetList.size() > receiveBase)
+								packetList.set(receiveBase, tem);
+							else {
+								packetList.add(receiveBase, tem);
+							}
+							receiveBase = (receiveBase+1)%LISTSIZE;
+							
+							System.out.println("接收后：" + receiveBase);
+	
+							LFTP_packet tem2 = new LFTP_packet(tem.getSerialNumber(), 0, 1,
+									windowSize, 0, 2, "ok".getBytes());
+				            DatagramPacket sendPacket = new DatagramPacket(tem2.tobyte(), 
+				            		tem2.tobyte().length, datagramPacket.getAddress(), 
+				            		datagramPacket.getPort());
+				            datagramSocket.send(sendPacket);
+				            System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个" + ", 发回了：" + tem2.getSerialNumber());	
 						} catch (InterruptedIOException e) { // 当receive不到信息或者receive时间超过3秒时，就向服务器重发请求    
 			            	System.out.println("Timed out : " + TIMEOUT );   
 			            	System.out.println(packet.size());
@@ -121,10 +123,21 @@ public class ReceiveService {
 		    	DatagramPacket sendPacket = new DatagramPacket(final_pac.tobyte(), 
 		    			final_pac.tobyte().length, datagramPacket.getAddress(), 
 	            		datagramPacket.getPort());
-	            datagramSocket.send(sendPacket);
-	            datagramSocket.send(sendPacket);
-	            datagramSocket.send(sendPacket);
-	            datagramSocket.close();
+		    	
+		    	while (true) {
+			    	datagramSocket.send(sendPacket);
+			    	try {
+			    		datagramSocket.receive(datagramPacket);
+			    		if ((new LFTP_packet(datagramPacket.getData())).getIsfinal() == 1) {
+			    			break;
+			    		}
+					} catch (Exception e) {
+						System.out.println("final not find, resend final packet.");
+						continue;
+					}
+		    	}
+	            
+	    		datagramSocket.close();
 			} catch (Exception e) {
 				e.printStackTrace();
 				System.out.println("接收出错");

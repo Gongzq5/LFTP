@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.IllegalFormatCodePointException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -81,7 +82,6 @@ public class ReceiveService {
 //						System.out.println("sleep");
 						Thread.sleep(3);
 					} else {				
-//						System.out.println("等待接收");
 						try {
 						datagramSocket.receive(datagramPacket);
 						LFTP_packet tem = new LFTP_packet(datagramPacket.getData());
@@ -89,9 +89,6 @@ public class ReceiveService {
 						if (!recievedPackets.containsKey(tem.getSerialNumber())) {
 							recievedPackets.put(tem.getSerialNumber(), true);
 						}
-						
-//						String string = new String(tem.getData(), 0 , tem.getData().length);
-						
 						
 						if (packetList.size() > receiveBase)
 							packetList.set(receiveBase, tem);
@@ -108,7 +105,6 @@ public class ReceiveService {
 			            		tem2.tobyte().length, datagramPacket.getAddress(), 
 			            		datagramPacket.getPort());
 			            datagramSocket.send(sendPacket);
-//			            System.out.println(sendPacket.getAddress() + "  " + sendPacket.getPort());
 			            System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个" + ", 发回了：" + tem2.getSerialNumber());	
 
 						} catch (InterruptedIOException e) { // 当receive不到信息或者receive时间超过3秒时，就向服务器重发请求    
@@ -117,9 +113,6 @@ public class ReceiveService {
 			            	System.out.println(packet.size());
 			            	System.out.println(packet.size());
 			            	System.out.println(packet.size());
-			            	
-			            
-						
 						} 
 					}
 				}
@@ -149,6 +142,9 @@ public class ReceiveService {
 	    	try {
 	    		out = new FileOutputStream(src);    	
 		    	while(true) {
+		    		if (filewriteNumber >= 3652) {
+		    			System.out.println("IS LAST " + packetList.get(filereadNumber).getIslast());
+		    		}
 		    		if (filereadNumber == receiveBase) {
 		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
 		    			Thread.sleep(10);
@@ -167,7 +163,7 @@ public class ReceiveService {
 		    					out.write(packetList.get(filereadNumber).getData());
 		    				}
 //		    				System.out.println(packetList.get(filereadNumber).getData().length);
-		    				filewriteNumber ++;
+		    				filewriteNumber++;
 
 		    			} else {
 		    				packet.put(packetList.get(filereadNumber).getSerialNumber(), 

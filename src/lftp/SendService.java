@@ -33,7 +33,7 @@ public class SendService {
 	private int nextSeqNumber = 0;
 	private boolean isSending = false;
 	private int windowSize = 128; //128
-	private long timeOut = 200;
+	private long timeOut = 1000;
 	
 	private String path = null;
 	private int port = 5066;
@@ -144,36 +144,28 @@ public class SendService {
 		@Override
 		public void run() {
 			try {
-				Thread.sleep(10);
+				sleep(10);
 				while (true) {
-//					System.out.println("等待接收: "+ sendBase);
+					System.out.println("Waiting for receive in receive...");
 					datagramSocket.receive(datagramPacket);
-					
 					LFTP_packet packet = new LFTP_packet(receMsgs);
-					
 					if (packet.getIsfinal() == 1) {
 						break;
 					}
 					
 					if (packet.getAck() == 1) {
-						System.out.println("接收到了:  " + packet.getIsfinal());	
+						System.out.println("接收到了:  " + packet.getSerialNumber());	
 					}
 					
 					boolean ackInWindow = false;
-//					if (packet.getAck() == 1 && 
-//						packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() && 
-//						packet.getSerialNumber() <= packetList.get((sendBase+windowSize)%LISTSIZE).getSerialNumber()) {
-//						ackInWindow = true;
-//					}
 					
 					if (packet.getAck() == 1 
-					&& ((packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() && packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize)
-					|| (packet.getSerialNumber() < packetList.get(sendBase).getSerialNumber() && packet.getSerialNumber() <= (packetList.get(sendBase).getSerialNumber()+windowSize)%LISTSIZE) )) {
-						
+						&& ((packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() 
+								&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize))) {
 						ackInWindow = true;
-						
 					}
 					
+					System.out.println("ACK in Window  " + ackInWindow);
 					// 如果收到来自接收方的ack,那么更新sendBase,否则把他加入到unUsedAck里
 					if (ackInWindow && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {
 						sendBase = (sendBase+1)%LISTSIZE;
@@ -191,7 +183,6 @@ public class SendService {
 				datagramSocket.close();
 			} catch (Exception e) {
 				e.printStackTrace();
-//				System.out.println("接收出错");
 			}
 		}
 	}

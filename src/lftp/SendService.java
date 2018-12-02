@@ -32,7 +32,10 @@ public class SendService {
 	private int fileNumber = 0;
 	private int nextSeqNumber = 0;
 	private boolean isSending = false;
-	private int windowSize = 128;
+	private int windowSize = 128; // 256
+	private int receiveWindowSize = 128;
+	private int congestionWindowSize = 1;
+	private int threshold = 128; //阈值
 	private long timeOut = 100;
 	
 	private String path = null;
@@ -83,6 +86,18 @@ public class SendService {
 			try {
 				datagramSocket = new DatagramSocket();
 				while (isSending) {
+					
+					if (reSendQueue.isEmpty() && congestionWindowSize < threshold) {
+						congestionWindowSize *= 2;						
+					} else if (reSendQueue.isEmpty() && congestionWindowSize >= threshold){
+						congestionWindowSize += 1;
+					} else {
+						congestionWindowSize /= 2;
+						threshold = congestionWindowSize;
+					}
+					
+					windowSize = (receiveWindowSize > congestionWindowSize ? congestionWindowSize : receiveWindowSize);
+					
 					// 先发重传的包
 					while (!reSendQueue.isEmpty()) {
 						LFTP_packet packet = reSendQueue.poll();
@@ -92,15 +107,16 @@ public class SendService {
 								inetAddress, port);
 						datagramSocket.send(datagramPacket);
 						System.out.println("重发    " + packet.getSerialNumber() + "时间  " + packet.getTime());
-					}
+					}								
 					
 					boolean willSend = false;
 					if (nextSeqNumber == fileNumber) {
 						willSend = false;
 					} else if (sendBase <= nextSeqNumber) {
-						willSend = ((sendBase + windowSize) > nextSeqNumber);
+						willSend = sendBase + windowSize > nextSeqNumber;
 					} else {
-						willSend = ((sendBase + windowSize) % LISTSIZE > nextSeqNumber);
+						willSend = (sendBase + windowSize) % LISTSIZE > nextSeqNumber 
+								&& sendBase + windowSize > LISTSIZE;
 					} 
 					
 					// 然后发正常的包
@@ -110,7 +126,7 @@ public class SendService {
 						DatagramPacket datagramPacket = new DatagramPacket(
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
-						System.out.println("发送包长度： " + packet.tobyte().length + "  " + packet.getLength());
+//						System.out.println("发送包长度： " + packet.tobyte().length + "  " + packet.getLength());
 						datagramSocket.send(datagramPacket);
 						
 						nextSeqNumber = (nextSeqNumber+1) % LISTSIZE;
@@ -276,7 +292,7 @@ public class SendService {
 	
 	public static void main(String[] args) throws UnknownHostException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "test\\send3.pdf");
+		SendService test = new SendService(inetAddress, "test\\src10m.txt");
 		test.send();
 	}
 }

@@ -82,7 +82,6 @@ public class ReceiveService {
 					System.out.println("recieve base " + receiveBase + "  file read number " + filereadNumber + 
 							" will receive " + willReceive);
 					if (!willReceive) {
-//						System.out.println("sleep");
 						Thread.sleep(3);
 					} else {				
 						try {

@@ -2,20 +2,15 @@ package lftp;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.IllegalFormatCodePointException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class ReceiveService {
@@ -79,8 +74,6 @@ public class ReceiveService {
 					} else {
 						willReceive = ((filereadNumber + windowSize) > receiveBase);
 					}
-					System.out.println("recieve base " + receiveBase + "  file read number " + filereadNumber + 
-							" will receive " + willReceive);
 					if (!willReceive) {
 						Thread.sleep(3);
 					} else {				
@@ -99,7 +92,7 @@ public class ReceiveService {
 							}
 							receiveBase = (receiveBase+1)%LISTSIZE;
 							
-							System.out.println("接收后：" + receiveBase);
+//							System.out.println("接收后：" + receiveBase);
 	
 							LFTP_packet tem2 = new LFTP_packet(tem.getSerialNumber(), 0, 1,
 									windowSize, 0, 2, "ok".getBytes());
@@ -109,17 +102,16 @@ public class ReceiveService {
 				            datagramSocket.send(sendPacket);
 				            System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个" + ", 发回了：" + tem2.getSerialNumber());	
 						} catch (InterruptedIOException e) { // 当receive不到信息或者receive时间超过3秒时，就向服务器重发请求    
-			            	System.out.println("Timed out : " + TIMEOUT );   
-			            	System.out.println(packet.size());
-			            	System.out.println(packet.size());
-			            	System.out.println(packet.size());
-			            	System.out.println(packet.size());
+//			            	System.out.println("Timed out : " + TIMEOUT );   
+//			            	System.out.println(packet.size());
+
 						} 
 					}
 				}
 				
 				LFTP_packet final_pac = new LFTP_packet(0, 1, 1, 0, 1, 5, "final".getBytes());
-		    	DatagramPacket sendPacket = new DatagramPacket(final_pac.tobyte(), 
+		    	System.out.println("final pac " + final_pac.getIsfinal());
+				DatagramPacket sendPacket = new DatagramPacket(final_pac.tobyte(), 
 		    			final_pac.tobyte().length, datagramPacket.getAddress(), 
 	            		datagramPacket.getPort());
 		    	
@@ -154,11 +146,9 @@ public class ReceiveService {
 	    	try {
 	    		out = new FileOutputStream(src);    	
 		    	while(true) {
-		    		if (filewriteNumber >= 3652) {
-		    			System.out.println("IS LAST " + packetList.get(filereadNumber).getIslast());
-		    		}
+		    		
 		    		if (filereadNumber == receiveBase) {
-		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
+//		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
 		    			Thread.sleep(10);
 		    		} else {
 		    			System.out.println("写文件啦 ，写：" + filewriteNumber + "  接收到的：" + packetList.get(filereadNumber).getSerialNumber());
@@ -199,7 +189,7 @@ public class ReceiveService {
 	}
 		
 	public static void main(String[] args) throws UnknownHostException {
-		ReceiveService test = new ReceiveService(5066, "test\\dst10m.txt");
+		ReceiveService test = new ReceiveService(5066, "test\\receive3.pdf");
 		test.receive();
 	}
 }

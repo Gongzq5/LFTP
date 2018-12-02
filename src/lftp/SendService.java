@@ -17,11 +17,9 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import javax.xml.crypto.Data;
-
 public class SendService {
-	private static final int LISTSIZE = 256; //256
-	private static final int READSIZE = 4081;  //4085
+	private static final int LISTSIZE = 256;
+	private static final int READSIZE = 4081;
 	private static final int HEADSIZE = 15;
 	
 	private List<LFTP_packet> packetList = null;
@@ -34,8 +32,8 @@ public class SendService {
 	private int fileNumber = 0;
 	private int nextSeqNumber = 0;
 	private boolean isSending = false;
-	private int windowSize = 128; //128
-	private long timeOut = 1000;
+	private int windowSize = 128;
+	private long timeOut = 100;
 	
 	private String path = null;
 	private int port = 5066;
@@ -83,10 +81,8 @@ public class SendService {
 		@Override
 		public void run() {
 			try {
-//				DatagramSocket datagramSocket = null;	
 				datagramSocket = new DatagramSocket();
 				while (isSending) {
-//					System.out.println("即将发送： " + nextSeqNumber);
 					// 先发重传的包
 					while (!reSendQueue.isEmpty()) {
 						LFTP_packet packet = reSendQueue.poll();
@@ -97,7 +93,7 @@ public class SendService {
 						datagramSocket.send(datagramPacket);
 						System.out.println("重发    " + packet.getSerialNumber() + "时间  " + packet.getTime());
 					}
-//					System.out.println("即将发送2： " + nextSeqNumber);
+					
 					boolean willSend = false;
 					if (nextSeqNumber == fileNumber) {
 						willSend = false;
@@ -107,29 +103,20 @@ public class SendService {
 						willSend = ((sendBase + windowSize) % LISTSIZE > nextSeqNumber);
 					} 
 					
-					
-//					System.out.println("即将发送3： " + willSend);
 					// 然后发正常的包
 					if (willSend) {
-//						nextSeqNumber = (nextSeqNumber+1) % LISTSIZE;
 						LFTP_packet packet = packetList.get(nextSeqNumber);
 						packet.setTime(System.currentTimeMillis());
 						DatagramPacket datagramPacket = new DatagramPacket(
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
-//						datagramSocket.setReuseAddress(true); 
 						System.out.println("发送包长度： " + packet.tobyte().length + "  " + packet.getLength());
 						datagramSocket.send(datagramPacket);
-
-//						System.out.println(datagramPacket.getAddress() + "  " + datagramPacket.getPort());
-
+						
 						nextSeqNumber = (nextSeqNumber+1) % LISTSIZE;
 					} else {					
 						Thread.sleep(10);
 					}
-					if (packetList.size() >sendBase)
-						System.out.println("已发送：(nextSeqNumber) " + (nextSeqNumber) + " (sendBase): " + sendBase + " " +
-							packetList.get(sendBase).getSerialNumber() + "   "  + " fileNumber: " + fileNumber + "   " + willSend);
 				}
 				timer.cancel();
 			} catch (Exception e) {
@@ -148,7 +135,6 @@ public class SendService {
 			try {
 				sleep(10);
 				while (true) {
-					System.out.println("Waiting for receive in receive...");
 					datagramSocket.receive(datagramPacket);
 					LFTP_packet packet = new LFTP_packet(receMsgs);
 					if (packet.getIsfinal() == 1) {
@@ -162,13 +148,13 @@ public class SendService {
 					boolean ackInWindow = false;
 					
 					if (packet.getAck() == 1 
-						&& ((packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() 
-								&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize))) {
+						&& packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() 
+						&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize) {
+
 						ackInWindow = true;
 					}
-					
-					System.out.println("ACK in Window  " + ackInWindow);
-					// 如果收到来自接收方的ack,那么更新sendBase,否则把他加入到unUsedAck里
+
+					// 如果收到来自接收方的ACK,那么更新sendBase,否则把他加入到unUsedAck里
 					if (ackInWindow && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {
 						sendBase = (sendBase+1)%LISTSIZE;
 						// sendBase递增，然后查看下一个sendBase是否被确认过
@@ -182,18 +168,26 @@ public class SendService {
 					}
 				}
 				
-				LFTP_packet finalAckPacket = new LFTP_packet(0, 1, 1, 0, 1, 5, "final".getBytes());
-				DatagramPacket finalAckDatagramPacket = new DatagramPacket(finalAckPacket.tobyte(), finalAckPacket.tobyte().length);
-				datagramSocket.setSoTimeout(5000);
-				try {
-					datagramSocket.receive(datagramPacket);
-					if (new LFTP_packet(datagramPacket.getData()).getIsfinal() == 1) {
-						datagramSocket.send(finalAckDatagramPacket);
-					}
-				} catch (Exception e) {
-					// nothing
-				}
 				isSending = false;
+				LFTP_packet finalAckPacket = new LFTP_packet(0, 1, 1, 0, 1, 5, "final".getBytes());
+				DatagramPacket finalAckDatagramPacket = new DatagramPacket(finalAckPacket.tobyte(), 
+						finalAckPacket.tobyte().length, inetAddress, port);
+				datagramSocket.setSoTimeout(5000);
+				datagramSocket.send(finalAckDatagramPacket);
+				
+				System.out.println("final");
+				while(true) {				
+					try {
+						datagramSocket.receive(datagramPacket);
+						if (new LFTP_packet(datagramPacket.getData()).getIsfinal() == 1) {
+							datagramSocket.send(finalAckDatagramPacket);
+						}
+						
+					} catch (Exception e) {
+//						System.out.println("not receive");
+						break;
+					}
+				}
 				datagramSocket.close();
 			} catch (Exception e) {
 				e.printStackTrace();
@@ -226,7 +220,6 @@ public class SendService {
 		    					tem = new LFTP_packet(i, 0, 0, 256, 0, READSIZE, car);
 		    				}
 		    				
-		    				System.out.println(tem.getData().length + "  " + tem.getLength());
 		    				if (packetList.size() > fileNumber) {
 		    					packetList.set(fileNumber, tem);
 		    				} else {
@@ -262,14 +255,12 @@ public class SendService {
 					LFTP_packet packet = packetList.get(i);
 					if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
 						reSendQueue.add(packet);
-						System.out.println("add " + packet.getSerialNumber() + " to the resend queue");
 					}
 				}
 				for (int i = 0; i < nextSeqNumber; i++) {
 					LFTP_packet packet = packetList.get(i);
 					if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
 						reSendQueue.add(packet);
-						System.out.println("add " + packet.getSerialNumber() + " to the resend queue");
 					}
 				}
 			} else {
@@ -277,8 +268,6 @@ public class SendService {
 					LFTP_packet packet = packetList.get(i);
 					if (curr - packet.getTime() > timeOut && !unUsedAck.containsKey(packet.getSerialNumber())) {	
 						reSendQueue.add(packet);
-						System.out.println("add " + packet.getSerialNumber() + " to the resend queue\n"
-								+ "它的时间是   " + packet.getTime());
 					}
 				}
 			}
@@ -287,7 +276,7 @@ public class SendService {
 	
 	public static void main(String[] args) throws UnknownHostException {
 		InetAddress inetAddress = InetAddress.getLocalHost();
-		SendService test = new SendService(inetAddress, "test\\src10m.txt");
+		SendService test = new SendService(inetAddress, "test\\send3.pdf");
 		test.send();
 	}
 }

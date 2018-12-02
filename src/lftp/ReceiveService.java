@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.InterruptedIOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,6 +49,18 @@ public class ReceiveService {
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
 		PORT_NUM = port;
 		this.path = path;
+
+		try {
+			datagramSocket = new DatagramSocket(PORT_NUM);
+		} catch (SocketException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public ReceiveService(DatagramSocket datagramSocket, String path) {
+		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
+		this.datagramSocket = datagramSocket;
+		this.path = path;
 	}
 	
 	public void receive() throws UnknownHostException {
@@ -68,7 +81,6 @@ public class ReceiveService {
 		@Override
 		public void run() {
 			try {
-				datagramSocket = new DatagramSocket(PORT_NUM);
 				datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
 				datagramSocket.setSoTimeout(TIMEOUT);
 				while (!filewriteOver) {
@@ -215,9 +227,17 @@ public class ReceiveService {
 	}
 		
 	public static void main(String[] args) throws UnknownHostException {
-
-		ReceiveService test = new ReceiveService(5066, "test\\dst10m.txt");
-
+		DatagramSocket datagramSocket = null;
+		try {
+			datagramSocket = new DatagramSocket(5066);
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		ReceiveService test = new ReceiveService(datagramSocket, "test\\dst10m.txt");
+		
 		test.receive();
 	}
 }

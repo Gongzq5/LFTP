@@ -13,6 +13,10 @@ public class Client {
 	private static final String SEND_COMMAND = "lsend";
 	private static final String QUIT_COMMAND = "lquit";
 	
+	private static final String GET = "GET";
+	private static final String SEND = "SND";
+	private static final String ACK = "ACK";
+	
 	private static final int CMD_LEN = 3;
 	private static final int IP_LEN = 4;
 	
@@ -63,7 +67,7 @@ public class Client {
 			String filePath = _filePath;
 		
 			byte[] buf = new byte[1024];
-			System.arraycopy("GET".getBytes(), 0, buf, 0, "GET".getBytes().length);
+			System.arraycopy(GET.getBytes(), 0, buf, 0, GET.getBytes().length);
 			buf[3] = (byte)filePath.length();
 			System.arraycopy(filePath.getBytes(), 0, buf, 4, filePath.getBytes().length);			
 
@@ -82,7 +86,7 @@ public class Client {
 			
 			datagramSocket.setSoTimeout(5000);
 			int timeOutTimes = 0;
-			while (timeOutTimes < 10) {
+			while (timeOutTimes < 6) {
 				try {
 					datagramSocket.send(requestPacket);
 					datagramSocket.receive(datagramPacket);
@@ -91,11 +95,9 @@ public class Client {
 					
 					String tag = receiveMsg.substring(0, CMD_LEN);
 					System.out.println("tag " + tag);
-					if (tag.equals("ACK")) {
+					if (tag.equals(ACK)) {
 						byte[] addressByte = new byte[4];
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
-//						Arrays.toString(addressByte);
-//						String addr = receiveMsg.substring(CMD_LEN, CMD_LEN+IP_LEN);
 						String addr = Arrays.toString(addressByte);
 						System.out.println("address " + addr);
 						if (addr.equals(Arrays.toString(InetAddress.getLocalHost().getAddress()))) {
@@ -121,8 +123,58 @@ public class Client {
 		try {
 			InetAddress serverAddress = InetAddress.getByName(_serverIP);
 			int serverPort = Integer.valueOf(_serverPort);
+			
+			byte[] buf = new byte[1024];
+			System.arraycopy(SEND.getBytes(), 0, buf, 0, SEND.getBytes().length);
+			buf[3] = (byte)filePath.length();
+			System.arraycopy(filePath.getBytes(), 0, buf, 4, filePath.getBytes().length);			
+
+			DatagramPacket requestPacket = new DatagramPacket(buf, buf.length,
+					serverAddress, serverPort);
+			DatagramPacket datagramPacket = new DatagramPacket(new byte[1024], 1024);
+			
+			if (datagramSocket == null || datagramSocket.isClosed()) {
+				datagramSocket = new DatagramSocket();
+			}
+			datagramSocket.setSoTimeout(3000);
+			System.out.println("Send request to the server...");
+			
+			int timeOutTimes = 0;
+			while (timeOutTimes < 5) {
+				try {
+					datagramSocket.send(requestPacket);
+					System.out.println("Waiting for server response...");
+					datagramSocket.receive(datagramPacket);
+					
+					String receiveMsg = new String(datagramPacket.getData());
+					
+					String tag = receiveMsg.substring(0, CMD_LEN);
+					System.out.println("tag " + tag);
+					if (tag.equals(ACK)) {
+						byte[] addressByte = new byte[4];
+						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
+						String addr = Arrays.toString(addressByte);
+						if (addr.equals(Arrays.toString(InetAddress.getLocalHost().getAddress()))) {
+							byte[] portByte = new byte[4];
+							System.arraycopy(datagramPacket.getData(), 3, portByte, 0, 4);
+							int targetPort = Byte2Int(portByte);
+							System.out.println("port " + targetPort);
+							
+							System.out.println("Data transfer begin, please wait in patient...");
+							sendService = new SendService(serverAddress, targetPort, filePath);
+							sendService.send();
+							System.out.println("Send over");
+							break;
+						}
+					}
+				} catch (Exception e) {
+					System.out.println("Waiting timeout, resend the request " + timeOutTimes + " th time.");
+					timeOutTimes++;
+				}
+			}
+			System.out.println("File send over, thanks for using lftp.");
 		} catch (Exception e) {
-			// TODO: handle exception
+			e.printStackTrace();
 		}
 	}
 	

@@ -168,10 +168,11 @@ public class ReceiveService {
 		    	while(true) {
 		    		
 		    		if (filereadNumber == receiveBase) {
-//		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
+		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
 		    			Thread.sleep(10);
 		    		} else {
-		    			System.out.println("写文件啦 ，写：" + filewriteNumber + "  接收到的：" + packetList.get(filereadNumber).getSerialNumber());
+		    			System.out.println("写文件啦 ，写：" + filewriteNumber + "  接收到的：" + packetList.get(filereadNumber).getSerialNumber() + " is last " + 
+		    						packetList.get(filereadNumber).getIslast());
 		    			if (filewriteNumber == packetList.get(filereadNumber).getSerialNumber()) {
 		    				if (packetList.get(filereadNumber).getIslast() == 1) {
 		    					break;
@@ -184,17 +185,22 @@ public class ReceiveService {
 		    				} else {
 		    					out.write(packetList.get(filereadNumber).getData());
 		    				}
-//		    				System.out.println(packetList.get(filereadNumber).getData().length);
 		    				filewriteNumber++;
 
 		    			} else {
 		    				packet.put(packetList.get(filereadNumber).getSerialNumber(), 
 		    						packetList.get(filereadNumber));
+		    				boolean trueOver = false;
 		    				while (packet.containsKey(filewriteNumber)) {
-		    					out.write(packet.get(filewriteNumber).getData());		    					
+		    					out.write(packet.get(filewriteNumber).getData());
+		    					if (packet.get(filewriteNumber).getIslast() == 1) {
+		    						trueOver = true;
+		    						break;
+		    					}
 		    					packet.remove(filewriteNumber);
 		    					filewriteNumber++;
 		    				}
+		    				if (trueOver) break;
 		    			}	
 		    			filereadNumber = (filereadNumber+1)%LISTSIZE;
 		    		}		    		

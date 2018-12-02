@@ -17,10 +17,13 @@ import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+
 public class SendService {
 	private static final int LISTSIZE = 256;
 	private static final int READSIZE = 4081;
 	private static final int HEADSIZE = 15;
+	
+	private static final String FINAL_MSG = "final";
 	
 	private List<LFTP_packet> packetList = null;
 	private SendThread sendThread = null;
@@ -37,6 +40,7 @@ public class SendService {
 	private int congestionWindowSize = 1;
 	private int threshold = 128; //阈值
 	private long timeOut = 100;
+//	private int recvWindow = 128;
 	
 	private String path = null;
 	private int port = 5066;
@@ -87,17 +91,18 @@ public class SendService {
 				datagramSocket = new DatagramSocket();
 				while (isSending) {
 					
-					if (reSendQueue.isEmpty() && congestionWindowSize < threshold) {
+					if (reSendQueue.isEmpty() && congestionWindowSize < threshold && congestionWindowSize < LISTSIZE) {
 						congestionWindowSize *= 2;						
-					} else if (reSendQueue.isEmpty() && congestionWindowSize >= threshold){
+					} else if (reSendQueue.isEmpty() && congestionWindowSize >= threshold && congestionWindowSize < LISTSIZE){
 						congestionWindowSize += 1;
-					} else {
+					} else if (congestionWindowSize < LISTSIZE) {
 						congestionWindowSize /= 2;
 						threshold = congestionWindowSize;
 					}
 					
 					windowSize = (receiveWindowSize > congestionWindowSize ? congestionWindowSize : receiveWindowSize);
-					
+//					windowSize = congestionWindowSize;
+					System.out.println("window size " + windowSize);
 					// 先发重传的包
 					while (!reSendQueue.isEmpty()) {
 						LFTP_packet packet = reSendQueue.poll();
@@ -153,23 +158,25 @@ public class SendService {
 				while (true) {
 					datagramSocket.receive(datagramPacket);
 					LFTP_packet packet = new LFTP_packet(receMsgs);
+					
 					if (packet.getIsfinal() == 1) {
 						break;
 					}
 					
 					if (packet.getAck() == 1) {
-						System.out.println("接收到了:  " + packet.getSerialNumber());	
+						System.out.println("接收到了:  " + packet.getSerialNumber());
 					}
 					
 					boolean ackInWindow = false;
 					
-					if (packet.getAck() == 1 
-						&& packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() 
-						&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize) {
-
-						ackInWindow = true;
+					if (packet.getAck() == 1) {
+						receiveWindowSize = packet.getReceiveWindow();
+						if (packet.getSerialNumber() >= packetList.get(sendBase).getSerialNumber() 
+							&& packet.getSerialNumber() <= packetList.get(sendBase).getSerialNumber()+windowSize) {
+							ackInWindow = true;
+						}
 					}
-
+					
 					// 如果收到来自接收方的ACK,那么更新sendBase,否则把他加入到unUsedAck里
 					if (ackInWindow && packet.getSerialNumber() == packetList.get(sendBase).getSerialNumber()) {
 						sendBase = (sendBase+1)%LISTSIZE;
@@ -185,7 +192,7 @@ public class SendService {
 				}
 				
 				isSending = false;
-				LFTP_packet finalAckPacket = new LFTP_packet(0, 1, 1, 0, 1, 5, "final".getBytes());
+				LFTP_packet finalAckPacket = new LFTP_packet(0, 1, 1, 0, 1, FINAL_MSG.length(), FINAL_MSG.getBytes());
 				DatagramPacket finalAckDatagramPacket = new DatagramPacket(finalAckPacket.tobyte(), 
 						finalAckPacket.tobyte().length, inetAddress, port);
 				datagramSocket.setSoTimeout(5000);
@@ -198,9 +205,7 @@ public class SendService {
 						if (new LFTP_packet(datagramPacket.getData()).getIsfinal() == 1) {
 							datagramSocket.send(finalAckDatagramPacket);
 						}
-						
 					} catch (Exception e) {
-//						System.out.println("not receive");
 						break;
 					}
 				}

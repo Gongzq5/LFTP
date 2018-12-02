@@ -18,13 +18,17 @@ public class ReceiveService {
 	private static final int WRITESIZE = 4081;  //4081
 	private static final int HEADSIZE = 15;
 	private static final int TIMEOUT = 5000;
+	
+	private static final String REFRESH_WINDOW_SIZE_MSG = "refresh window size";
+	private static final String FINAL_MSG = "final";
+	
 	private List<LFTP_packet> packetList = null;
 
 	private RecieveThread recieveThread = null;
 	private FileThread fileThread = null;
 	
 	private int receiveBase = 0;	
-	private int windowSize = 128; //128
+	private int windowSize = 200; // 256
 	private int filereadNumber = 0;
 	private int filewriteNumber = 0;
 	private Map<Integer, LFTP_packet> packet = new ConcurrentHashMap<Integer, LFTP_packet>();
@@ -38,6 +42,7 @@ public class ReceiveService {
     private Map<Integer, Boolean> recievedPackets = new HashMap<>();
 	
     private boolean filewriteOver = false;
+    private int leftWindowSize = LISTSIZE;
     
 	public ReceiveService(int port, String path) {
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
@@ -67,6 +72,20 @@ public class ReceiveService {
 				datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
 				datagramSocket.setSoTimeout(TIMEOUT);
 				while (!filewriteOver) {
+					 // 流量控制，如果出现了窗口为0的情况，每隔0.01秒重发一次自己的窗口信息, 此条件判断成功时，跳出其余步骤继续循环
+					if (leftWindowSize == 0) {
+						sleep(10);
+		                leftWindowSize = receiveBase > filereadNumber ? 
+								receiveBase - filereadNumber : LISTSIZE - filereadNumber + receiveBase;
+	            		LFTP_packet refreshWindowSizePacket = new LFTP_packet(0, 0, 1,
+								leftWindowSize, 0, REFRESH_WINDOW_SIZE_MSG.length(), REFRESH_WINDOW_SIZE_MSG.getBytes());
+	            		DatagramPacket sendPacket = new DatagramPacket(refreshWindowSizePacket.tobyte(), 
+	            				refreshWindowSizePacket.tobyte().length, datagramPacket.getAddress(), 
+			            		datagramPacket.getPort());
+			            datagramSocket.send(sendPacket);
+			            continue;
+			        } 
+					
 					boolean willReceive = false;
 					
 					if (receiveBase < filereadNumber) {
@@ -92,24 +111,25 @@ public class ReceiveService {
 							}
 							receiveBase = (receiveBase+1)%LISTSIZE;
 							
-//							System.out.println("接收后：" + receiveBase);
-	
+							leftWindowSize = receiveBase > filereadNumber ? 
+									receiveBase - filereadNumber : LISTSIZE - filereadNumber + receiveBase;
+							
 							LFTP_packet tem2 = new LFTP_packet(tem.getSerialNumber(), 0, 1,
-									windowSize, 0, 2, "ok".getBytes());
+									leftWindowSize, 0, 2, "ok".getBytes());
 				            DatagramPacket sendPacket = new DatagramPacket(tem2.tobyte(), 
 				            		tem2.tobyte().length, datagramPacket.getAddress(), 
 				            		datagramPacket.getPort());
 				            datagramSocket.send(sendPacket);
+				            
 				            System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个" + ", 发回了：" + tem2.getSerialNumber());	
-						} catch (InterruptedIOException e) { // 当receive不到信息或者receive时间超过3秒时，就向服务器重发请求    
-//			            	System.out.println("Timed out : " + TIMEOUT );   
-//			            	System.out.println(packet.size());
-
+				           
+						} catch (InterruptedIOException e) { 
+							// 当receive不到信息或者receive时间超过3秒时，就向服务器重发请求
 						} 
 					}
-				}
+				} // end while
 				
-				LFTP_packet final_pac = new LFTP_packet(0, 1, 1, 0, 1, 5, "final".getBytes());
+				LFTP_packet final_pac = new LFTP_packet(0, 1, 1, 0, 1, FINAL_MSG.length(), FINAL_MSG.getBytes());
 		    	System.out.println("final pac " + final_pac.getIsfinal());
 				DatagramPacket sendPacket = new DatagramPacket(final_pac.tobyte(), 
 		    			final_pac.tobyte().length, datagramPacket.getAddress(), 
@@ -189,7 +209,9 @@ public class ReceiveService {
 	}
 		
 	public static void main(String[] args) throws UnknownHostException {
-		ReceiveService test = new ReceiveService(5066, "test\\des10m.txt");
+
+		ReceiveService test = new ReceiveService(5066, "test\\dst10m.txt");
+
 		test.receive();
 	}
 }

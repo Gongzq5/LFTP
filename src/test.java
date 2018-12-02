@@ -59,11 +59,12 @@ public class test {
         return buf.toString();
     }
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws UnknownHostException {
 //		test t = new test();
 //		t.new SendThread().start();
 //		t.new ReceiveThread().start();
 
-		
+		System.out.println(InetAddress.getLocalHost().getAddress().toString());
+		System.out.println(new String("ACK".getBytes()));
 	}
 }

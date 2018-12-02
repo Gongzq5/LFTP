@@ -101,8 +101,13 @@ public class Client {
 		}
 	}
 	
-	private void sendFile(String serverIP, String serverPort, String filePath) {
-		
+	private void sendFile(String _serverIP, String _serverPort, String filePath) {
+		try {
+			InetAddress serverAddress = InetAddress.getByName(_serverIP);
+			int serverPort = Integer.valueOf(_serverPort);
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
 	}
 	
 	public static int Byte2Int(byte[] bytes) {

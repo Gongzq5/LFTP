@@ -26,6 +26,12 @@ public class Client {
 	private ReceiveService receiveService = null;
 	private SendService sendService = null;
 	
+	@Override
+	public int hashCode() {
+		// TODO Auto-generated method stub
+		return super.hashCode();
+	}
+	
 	public Client() throws SocketException {
 		scanner = new Scanner(System.in);
 		datagramSocket = new DatagramSocket();

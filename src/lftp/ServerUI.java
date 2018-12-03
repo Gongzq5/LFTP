@@ -6,7 +6,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -36,11 +35,11 @@ public class ServerUI {
 			datagramSocket.receive(datagramPacket);								
 			String receStr = new String(datagramPacket.getData(), 0 , datagramPacket.getLength());
 			byte[] hashcode = new byte[4];
-			System.arraycopy(receMsgs, 4, hashcode, 0, 4);		
+			System.arraycopy(receMsgs, 3, hashcode, 0, 4);		
 					
 			int length = (int)receMsgs[7];
 			byte[] pathByte = new byte[length];
-			System.arraycopy(receMsgs, 7, pathByte, 0, length);			
+			System.arraycopy(receMsgs, 8, pathByte, 0, length);			
 			String sendpath = new String(pathByte);
 			
 			System.out.println("length " + length + " path: " + sendpath);

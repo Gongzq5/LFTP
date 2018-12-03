@@ -5,7 +5,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Scanner;
 
 public class Client {
@@ -19,7 +18,6 @@ public class Client {
 	private static final String ACK = "ACK";
 	
 	private static final int CMD_LEN = 3;
-	private static final int IP_LEN = 4;
 	
 	private Scanner scanner = null;
 	private DatagramSocket datagramSocket = null;
@@ -102,7 +100,7 @@ public class Client {
 					if (tag.equals(ACK)) {
 						byte[] addressByte = new byte[4];
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
-						if (addressByte.equals(addrAddPort)) {
+						if (Arrays.equals(addressByte, addrAddPort)) {
 							System.out.println("Data transfer begin, please wait in patient...");
 							receiveService = new ReceiveService(datagramSocket, "test\\RCV.txt");
 							receiveService.receive();
@@ -133,7 +131,9 @@ public class Client {
 			System.arraycopy(addrAddPort, 0, buf, 3, 4);
 			buf[7] = (byte)filePath.length();
 			System.arraycopy(filePath.getBytes(), 0, buf, 8, filePath.getBytes().length);			
-
+			
+			System.out.println("addrAddPort: " + addrAddPort);
+			
 			DatagramPacket requestPacket = new DatagramPacket(buf, buf.length,
 					serverAddress, serverPort);
 			DatagramPacket datagramPacket = new DatagramPacket(new byte[1024], 1024);
@@ -158,7 +158,11 @@ public class Client {
 					if (tag.equals(ACK)) {
 						byte[] addressByte = new byte[4];
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
-						if (addressByte.equals(addrAddPort)) {
+						System.out.println("address port: " + addrAddPort);
+						System.out.println("address byte: " + addressByte);
+						System.out.println(Arrays.equals(addressByte, addrAddPort));
+						
+						if (Arrays.equals(addressByte, addrAddPort)) {
 							byte[] portByte = new byte[4];
 							System.arraycopy(datagramPacket.getData(), 7, portByte, 0, 4);
 							int targetPort = Byte2Int(portByte);

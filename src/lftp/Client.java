@@ -18,7 +18,6 @@ public class Client {
 	private static final String ACK = "ACK";
 	
 	private static final int CMD_LEN = 3;
-	private static final int IP_LEN = 4;
 	
 	private Scanner scanner = null;
 	private DatagramSocket datagramSocket = null;
@@ -73,9 +72,12 @@ public class Client {
 			String filePath = _filePath;
 		
 			byte[] buf = new byte[1024];
-			System.arraycopy(GET.getBytes(), 0, buf, 0, GET.getBytes().length);
-			buf[3] = (byte)filePath.length();
-			System.arraycopy(filePath.getBytes(), 0, buf, 4, filePath.getBytes().length);			
+			System.arraycopy(GET.getBytes(), 0, buf, 0, GET.getBytes().length); // 'GET'
+			byte[] addrAddPort = LFTP_head.IntToByte(Byte2Int(InetAddress.getLocalHost().getAddress()) + datagramSocket.getLocalPort());
+			addrAddPort = LFTP_head.IntToByte(addrAddPort.hashCode());
+			System.arraycopy(addrAddPort, 0, buf, 3, 4);
+			buf[7] = (byte)filePath.length();									// path闀垮害
+			System.arraycopy(filePath.getBytes(), 0, buf, 8, filePath.getBytes().length); // filePath			
 
 			DatagramPacket requestPacket = new DatagramPacket(buf, buf.length,
 					serverAddress, serverPort);
@@ -104,9 +106,7 @@ public class Client {
 					if (tag.equals(ACK)) {
 						byte[] addressByte = new byte[4];
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
-						String addr = Arrays.toString(addressByte);
-						System.out.println("address " + addr);
-						if (addr.equals(Arrays.toString(InetAddress.getLocalHost().getAddress()))) {
+						if (Arrays.equals(addressByte, addrAddPort)) {
 							System.out.println("Data transfer begin, please wait in patient...");
 							receiveService = new ReceiveService(datagramSocket, "test\\RCV.txt");
 							receiveService.receive();
@@ -132,9 +132,14 @@ public class Client {
 			
 			byte[] buf = new byte[1024];
 			System.arraycopy(SEND.getBytes(), 0, buf, 0, SEND.getBytes().length);
-			buf[3] = (byte)filePath.length();
-			System.arraycopy(filePath.getBytes(), 0, buf, 4, filePath.getBytes().length);			
-
+			byte[] addrAddPort = LFTP_head.IntToByte(Byte2Int(InetAddress.getLocalHost().getAddress()) + datagramSocket.getLocalPort());
+			addrAddPort = LFTP_head.IntToByte(addrAddPort.hashCode());
+			System.arraycopy(addrAddPort, 0, buf, 3, 4);
+			buf[7] = (byte)filePath.length();
+			System.arraycopy(filePath.getBytes(), 0, buf, 8, filePath.getBytes().length);			
+			
+			System.out.println("addrAddPort: " + addrAddPort);
+			
 			DatagramPacket requestPacket = new DatagramPacket(buf, buf.length,
 					serverAddress, serverPort);
 			DatagramPacket datagramPacket = new DatagramPacket(new byte[1024], 1024);
@@ -159,8 +164,11 @@ public class Client {
 					if (tag.equals(ACK)) {
 						byte[] addressByte = new byte[4];
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
-						String addr = Arrays.toString(addressByte);
-						if (addr.equals(Arrays.toString(InetAddress.getLocalHost().getAddress()))) {
+						System.out.println("address port: " + addrAddPort);
+						System.out.println("address byte: " + addressByte);
+						System.out.println(Arrays.equals(addressByte, addrAddPort));
+						
+						if (Arrays.equals(addressByte, addrAddPort)) {
 							byte[] portByte = new byte[4];
 							System.arraycopy(datagramPacket.getData(), 7, portByte, 0, 4);
 							int targetPort = Byte2Int(portByte);
@@ -204,8 +212,8 @@ public class Client {
 /**
  * > get a.txt 
  * 
- * get 请求
- * 分配端口，给我发回来
+ * get 璇锋眰
+ * 鍒嗛厤绔彛锛岀粰鎴戝彂鍥炴潵
  * 
  * lget 172.18.34.154 5066 test\\src10m.txt
  * lget 172.18.35.215 5066 test\\src10m.txt

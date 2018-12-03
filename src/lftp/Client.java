@@ -214,6 +214,9 @@ public class Client {
  * 
  * get 请求
  * 分配端口，给我发回来
+ *  172.19.1.76
+ * lget 172.19.1.76 5066 test\\src10m.txt
+ * lsend 172.19.1.76 5066 test\\src10m.txt
  * 
  * lget 172.18.34.154 5066 test\\src10m.txt
  * lget 172.18.35.215 5066 test\\src10m.txt

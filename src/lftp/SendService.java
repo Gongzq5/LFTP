@@ -60,6 +60,11 @@ public class SendService {
 		reSendQueue = new ConcurrentLinkedQueue<>();
 	}
 	
+	public void change(InetAddress inetAddress, int port) {
+		this.inetAddress = inetAddress;
+		this.port = port;
+	}
+	
 	public void send() throws UnknownHostException, InterruptedException {
 		timer = new Timer();
 		timer.schedule(new TimeCounter(), 0, 10);

@@ -34,6 +34,11 @@ public class Client {
 	private SendService sendService = null;
 	
 	private Timer timer = new Timer();
+	@Override
+	public int hashCode() {
+		// TODO Auto-generated method stub
+		return super.hashCode();
+	}
 	
 	public Client() throws SocketException {
 		scanner = new Scanner(System.in);
@@ -83,7 +88,7 @@ public class Client {
 			System.arraycopy(hashId, 0, buf, 3, 4);
 			buf[7] = (byte)filePath.length();									// path长度
 			System.arraycopy(filePath.getBytes(), 0, buf, 8, filePath.getBytes().length); // filePath			
-			new Timer().schedule(new HeartBeat(), 0, 2000);
+			timer.schedule(new HeartBeat(), 0, 2000);
 			DatagramPacket requestPacket = new DatagramPacket(buf, buf.length,
 					serverAddress, serverPort);
 			
@@ -230,6 +235,9 @@ public class Client {
  * 
  * get 请求
  * 分配端口，给我发回来
+ *  172.19.1.76
+ * lget 172.19.1.76 5066 test\\src10m.txt
+ * lsend 172.19.1.76 5066 test\\src10m.txt
  * 
  * lget 172.18.34.154 5066 test\\src10m.txt
  * lget 172.18.35.215 5066 test\\src10m.txt

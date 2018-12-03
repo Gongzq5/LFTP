@@ -33,7 +33,7 @@ public class Client {
 	private ReceiveService receiveService = null;
 	private SendService sendService = null;
 	
-	private Timer timer = new Timer();
+	private Timer timer = null;
 	@Override
 	public int hashCode() {
 		// TODO Auto-generated method stub
@@ -43,6 +43,14 @@ public class Client {
 	public Client() throws SocketException {
 		scanner = new Scanner(System.in);
 		datagramSocket = new DatagramSocket();
+	}
+	
+	@Override
+	protected void finalize() throws Throwable {
+		// TODO Auto-generated method stub
+		if (timer != null) timer.cancel();
+		if (datagramSocket != null) datagramSocket.close(); 
+		super.finalize();
 	}
 	
 	public void UILoop() {
@@ -88,7 +96,6 @@ public class Client {
 			System.arraycopy(hashId, 0, buf, 3, 4);
 			buf[7] = (byte)filePath.length();									// path长度
 			System.arraycopy(filePath.getBytes(), 0, buf, 8, filePath.getBytes().length); // filePath			
-			timer.schedule(new HeartBeat(), 0, 2000);
 			DatagramPacket requestPacket = new DatagramPacket(buf, buf.length,
 					serverAddress, serverPort);
 			
@@ -120,6 +127,7 @@ public class Client {
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
 						if (Arrays.equals(addressByte, hashId)) {
 							System.out.println("Data transfer begin, please wait in patient...");
+							timer = new Timer();
 							timer.schedule(new HeartBeat(), 0, 2000);
 							receiveService = new ReceiveService(datagramSocket, "test\\RCV.txt");
 							receiveService.receive();
@@ -178,6 +186,7 @@ public class Client {
 							System.out.println("port " + targetPort);
 							
 							System.out.println("Data transfer begin, please wait in patient...");
+							timer = new Timer();
 							timer.schedule(new HeartBeat(), 0, 2000);
 							sendService = new SendService(serverAddress, targetPort, filePath);
 							sendService.send();

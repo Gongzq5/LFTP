@@ -35,23 +35,27 @@ public class ServerUI {
 			System.out.println("wait");
 			datagramSocket.receive(datagramPacket);								
 			String receStr = new String(datagramPacket.getData(), 0 , datagramPacket.getLength());
-			int length = (int)receMsgs[3];
+			byte[] hashcode = new byte[4];
+			System.arraycopy(receMsgs, 4, hashcode, 0, 4);		
+					
+			int length = (int)receMsgs[7];
 			byte[] pathByte = new byte[length];
-			System.arraycopy(receMsgs, 4, pathByte, 0, length);			
+			System.arraycopy(receMsgs, 7, pathByte, 0, length);			
 			String sendpath = new String(pathByte);
 			
 			System.out.println("length " + length + " path: " + sendpath);
 			
 			if (receStr.substring(0, 3).equals("GET")) {
-				this.sendFile(sendpath, datagramPacket.getAddress(), datagramPacket.getPort());
+				this.sendFile(sendpath, datagramPacket.getAddress(), datagramPacket.getPort(), hashcode);
 			} else if (receStr.substring(0, 3).equals("SED")){
-				this.receiveFile(sendpath, datagramPacket.getAddress(), datagramPacket.getPort());
+				this.receiveFile(sendpath, datagramPacket.getAddress(), datagramPacket.getPort(), hashcode);
 			}
 		}
 	}
 	
-	public void sendFile(String path, InetAddress address, int port) {
+	public void sendFile(String path, InetAddress address, int port, byte[] hashcode) {
 		if (address2sendtime.containsKey(address)) {
+			System.out.println("I have receive GET message before");
 			address2sendtime.put(address, System.currentTimeMillis());			
 		} else {
 			address2path.put(address, path);					
@@ -63,7 +67,7 @@ public class ServerUI {
 		
 		byte[] buf = new byte[1024];
 		System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
-		System.arraycopy(address.getAddress(), 0, buf, "ACK".getBytes().length, 4);
+		System.arraycopy(hashcode, 0, buf, "ACK".getBytes().length, 4);
 		System.arraycopy(LFTP_head.IntToByte(port), 0, buf, "ACK".getBytes().length+4, 4);
 		
 		
@@ -76,9 +80,9 @@ public class ServerUI {
 		}
 	}
 	
-	public void receiveFile(String path, InetAddress address, int port) {
+	public void receiveFile(String path, InetAddress address, int port, byte[] hashcode) {		
 		if (address2receivetime.containsKey(address)) {
-			System.out.println("adfadf");
+			System.out.println("I have receive SEND message before");
 			address2receivetime.put(address, System.currentTimeMillis());			
 		} else {
 			address2path.put(address, path);		
@@ -94,19 +98,20 @@ public class ServerUI {
 			address2receivetime.put(address, System.currentTimeMillis());
 			
 			System.out.println(ds.getLocalPort());
-			
-			byte[] buf = new byte[1024];
-			System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
-			System.arraycopy(address.getAddress(), 0, buf, "ACK".getBytes().length, 4);
-			System.arraycopy(LFTP_head.IntToByte(ds.getLocalPort()), 0, buf, "ACK".getBytes().length+4, 4);			
-
-	        DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, address, port);
-	        try {
-				datagramSocket.send(sendPacket);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		}
+			
+		byte[] buf = new byte[1024];
+		System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
+		System.arraycopy(hashcode, 0, buf, "ACK".getBytes().length, 4);
+		System.arraycopy(LFTP_head.IntToByte(address2Socket.get(address).getLocalPort()), 0, buf, "ACK".getBytes().length+4, 4);			
+
+        DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, address, port);
+        try {
+			datagramSocket.send(sendPacket);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
 	}
 	
 	private class TimeCounter extends TimerTask {

@@ -61,8 +61,10 @@ public class ServerUI {
 			address2port.put(address, port);			
 			address2sendtime.put(address, System.currentTimeMillis());						
 		}	
-		System.out.println(" path: " + path);
-		
+		System.out.println("[Server UI] ACK path: " + path);
+		System.out.println("[Server UI] ACK address£º " + address.getHostAddress());
+		System.out.println("[Server UI] ACK port: " + port);
+
 		
 		byte[] buf = new byte[1024];
 		System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
@@ -136,8 +138,6 @@ public class ServerUI {
 			for (InetAddress address : address2receivetime.keySet()) {
 				if (curr - address2receivetime.get(address) > timeOut) {					
 		    		try {
-//		    			new ReceiveService(address2Socket.get(address), address2path.get(address)).receive();
-//		    			new ReceiveService(address2Socket.get(address), "test\\dst10m.txt").receive();
 		    			new receive(address2Socket.get(address), address2path.get(address)).start();
 		    			System.out.println("receive over");
 		    		} catch (Exception e) {

@@ -112,7 +112,7 @@ public class SendService {
 					
 					windowSize = (receiveWindowSize > congestionWindowSize ? congestionWindowSize : receiveWindowSize);
 //					windowSize = congestionWindowSize;
-					System.out.println("window size " + windowSize);
+//					System.out.println("window size " + windowSize);
 					// 先发重传的包
 					while (!reSendQueue.isEmpty()) {
 						LFTP_packet packet = reSendQueue.poll();
@@ -121,7 +121,7 @@ public class SendService {
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
 						datagramSocket.send(datagramPacket);
-						System.out.println("重发    " + packet.getSerialNumber() + "时间  " + packet.getTime());
+//						System.out.println("重发    " + packet.getSerialNumber() + "时间  " + packet.getTime());
 					}								
 					
 					boolean willSend = false;

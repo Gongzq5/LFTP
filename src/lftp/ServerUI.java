@@ -132,9 +132,10 @@ public class ServerUI {
 		if (hash2port.get(hash) == port && hash2address.get(hash).equals(address) ) {
 			System.out.println("your port has not change");
 		} else {
+			System.out.println("Change to " + address.getHostAddress() + " : " + port);
 			hash2address.put(hash, address);
 			hash2port.put(hash, port);
-			hash2sendService.get(hash).change(address, port);   ;
+			hash2sendService.get(hash).change(address, port);
 			System.out.println("your port has changed");
 		}
 	}
@@ -161,7 +162,7 @@ public class ServerUI {
 //		    		hash2address.remove(hash);
 				}
 			}
-			
+			 
 			for (Integer hash : hash2receivetime.keySet()) {
 				if (curr - hash2receivetime.get(hash) > timeOut) {					
 		    		try {

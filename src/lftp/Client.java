@@ -1,11 +1,14 @@
 package lftp;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class Client {
 	private static final String PROMPT = "LFTP > ";
@@ -16,8 +19,13 @@ public class Client {
 	private static final String GET = "GET";
 	private static final String SEND = "SED";
 	private static final String ACK = "ACK";
+	private static final String HEART = "HRT";
 	
 	private static final int CMD_LEN = 3;
+	
+	private InetAddress serverAddress;
+	private int serverPort;
+	private byte[] hashId = new byte[4];
 	
 	private Scanner scanner = null;
 	private DatagramSocket datagramSocket = null;
@@ -25,6 +33,7 @@ public class Client {
 	private ReceiveService receiveService = null;
 	private SendService sendService = null;
 	
+	private Timer timer = new Timer();
 	@Override
 	public int hashCode() {
 		// TODO Auto-generated method stub
@@ -48,14 +57,21 @@ public class Client {
 					break;
 				} else {
 					// Not quit, then we should get a IP address of the server
-					String serverIP = scanner.next("[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}");
-					String serverPort = scanner.next("[0-9]{1,5}");
+					String _serverIP = scanner.next("[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}");
+					String _serverPort = scanner.next("[0-9]{1,5}");
+					// Cast from String and calculate ID code
+					serverAddress = InetAddress.getByName(_serverIP);
+					serverPort = Integer.valueOf(_serverPort);
+					byte[] addrAddPort = LFTP_head.IntToByte(Byte2Int(InetAddress.getLocalHost().getAddress()) 
+							+ datagramSocket.getLocalPort());
+					hashId = LFTP_head.IntToByte(addrAddPort.hashCode());
+					
 					// path
 					String filePath = scanner.next();
 					if (cmd.equals(GET_COMMAND)) {
-						getFile(serverIP, serverPort, filePath);
+						getFile(filePath);
 					} else if (cmd.equals(SEND_COMMAND)) {
-						sendFile(serverIP, serverPort, filePath);
+						sendFile(filePath);
 					}
 				}
 			} catch (Exception e) {
@@ -65,26 +81,21 @@ public class Client {
 		System.out.println("LFTP Client quits now, thanks for using.");
 	}
 	
-	private void getFile(String _serverIP, String _serverPort, String _filePath) {
-		try {
-			InetAddress serverAddress = InetAddress.getByName(_serverIP);
-			int serverPort = Integer.valueOf(_serverPort);
-			String filePath = _filePath;
-		
+	private void getFile(String filePath) {
+		try {		
 			byte[] buf = new byte[1024];
 			System.arraycopy(GET.getBytes(), 0, buf, 0, GET.getBytes().length); // 'GET'
-			byte[] addrAddPort = LFTP_head.IntToByte(Byte2Int(InetAddress.getLocalHost().getAddress()) + datagramSocket.getLocalPort());
-			addrAddPort = LFTP_head.IntToByte(addrAddPort.hashCode());
-			System.arraycopy(addrAddPort, 0, buf, 3, 4);
+			System.arraycopy(hashId, 0, buf, 3, 4);
 			buf[7] = (byte)filePath.length();									// path长度
 			System.arraycopy(filePath.getBytes(), 0, buf, 8, filePath.getBytes().length); // filePath			
-
+			timer.schedule(new HeartBeat(), 0, 2000);
 			DatagramPacket requestPacket = new DatagramPacket(buf, buf.length,
 					serverAddress, serverPort);
 			
 			DatagramPacket datagramPacket = new DatagramPacket(new byte[1024], 1024);
 			
-			System.out.println("Request send to the server ( " + _serverIP + ":" + _serverPort + " )");
+			System.out.println("Request send to the server ( " + serverAddress.getHostAddress() + 
+					":" + serverPort + " )");
 			System.out.println("Waiting for response...");
 			
 			if (datagramSocket == null || datagramSocket.isClosed()) {
@@ -102,15 +113,17 @@ public class Client {
 					String receiveMsg = new String(datagramPacket.getData());
 					
 					String tag = receiveMsg.substring(0, CMD_LEN);
-					System.out.println("tag " + tag);
+					System.out.println("[Client UI] ACK received, " + tag + " from " + datagramPacket.getAddress() + ":" 
+										+ datagramPacket.getPort());
 					if (tag.equals(ACK)) {
 						byte[] addressByte = new byte[4];
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
-						if (Arrays.equals(addressByte, addrAddPort)) {
+						if (Arrays.equals(addressByte, hashId)) {
 							System.out.println("Data transfer begin, please wait in patient...");
+							timer.schedule(new HeartBeat(), 0, 2000);
 							receiveService = new ReceiveService(datagramSocket, "test\\RCV.txt");
 							receiveService.receive();
-							
+							timer.cancel();
 							System.out.println("receive over");
 							break;
 						}
@@ -125,20 +138,13 @@ public class Client {
 		}
 	}
 	
-	private void sendFile(String _serverIP, String _serverPort, String filePath) {
+	private void sendFile(String filePath) {
 		try {
-			InetAddress serverAddress = InetAddress.getByName(_serverIP);
-			int serverPort = Integer.valueOf(_serverPort);
-			
 			byte[] buf = new byte[1024];
 			System.arraycopy(SEND.getBytes(), 0, buf, 0, SEND.getBytes().length);
-			byte[] addrAddPort = LFTP_head.IntToByte(Byte2Int(InetAddress.getLocalHost().getAddress()) + datagramSocket.getLocalPort());
-			addrAddPort = LFTP_head.IntToByte(addrAddPort.hashCode());
-			System.arraycopy(addrAddPort, 0, buf, 3, 4);
+			System.arraycopy(hashId, 0, buf, 3, 4);
 			buf[7] = (byte)filePath.length();
 			System.arraycopy(filePath.getBytes(), 0, buf, 8, filePath.getBytes().length);			
-			
-			System.out.println("addrAddPort: " + addrAddPort);
 			
 			DatagramPacket requestPacket = new DatagramPacket(buf, buf.length,
 					serverAddress, serverPort);
@@ -164,19 +170,18 @@ public class Client {
 					if (tag.equals(ACK)) {
 						byte[] addressByte = new byte[4];
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
-						System.out.println("address port: " + addrAddPort);
-						System.out.println("address byte: " + addressByte);
-						System.out.println(Arrays.equals(addressByte, addrAddPort));
 						
-						if (Arrays.equals(addressByte, addrAddPort)) {
+						if (Arrays.equals(addressByte, hashId)) {
 							byte[] portByte = new byte[4];
 							System.arraycopy(datagramPacket.getData(), 7, portByte, 0, 4);
 							int targetPort = Byte2Int(portByte);
 							System.out.println("port " + targetPort);
 							
 							System.out.println("Data transfer begin, please wait in patient...");
+							timer.schedule(new HeartBeat(), 0, 2000);
 							sendService = new SendService(serverAddress, targetPort, filePath);
 							sendService.send();
+							timer.cancel();
 							System.out.println("Send over");
 							break;
 						}
@@ -189,6 +194,22 @@ public class Client {
 			System.out.println("File send over, thanks for using lftp.");
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+	
+	public class HeartBeat extends TimerTask {
+		@Override
+		public void run() {
+			try {
+				// 'HRT'+hashId
+				byte[] msg = new byte[7];
+				System.arraycopy(HEART.getBytes(), 0, msg, 0, HEART.getBytes().length);
+				System.arraycopy(hashId, 0, msg, HEART.getBytes().length, hashId.length);
+				datagramSocket.send(new DatagramPacket(msg, msg.length, 
+						serverAddress, serverPort));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 	

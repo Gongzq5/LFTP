@@ -66,6 +66,10 @@ public class SendService {
 	}
 	
 	public void send() throws UnknownHostException, InterruptedException {
+		
+		System.out.println("[Send Service] Send to Address : " + inetAddress.getHostAddress()
+				+ "   Port : " + port);
+	
 		timer = new Timer();
 		timer.schedule(new TimeCounter(), 0, 10);
 		if (fileThread == null) {
@@ -165,16 +169,21 @@ public class SendService {
 		public void run() {
 			try {
 				sleep(10);
+				int tempCountInWhileForOutput = 0;
 				while (true) {
 					datagramSocket.receive(datagramPacket);
 					LFTP_packet packet = new LFTP_packet(receMsgs);
-					
+					if (tempCountInWhileForOutput % 50 == 0) {
+						System.out.println("Address : " + datagramPacket.getAddress().getHostAddress()
+								+ "   Port : " + datagramPacket.getPort());
+					}
+					tempCountInWhileForOutput++;
 					if (packet.getIsfinal() == 1) {
 						break;
 					}
 					
 					if (packet.getAck() == 1) {
-						System.out.println("接收到了:  " + packet.getSerialNumber());
+//						System.out.println("接收到了:  " + packet.getSerialNumber());
 					}
 					
 					boolean ackInWindow = false;

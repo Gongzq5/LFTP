@@ -6,7 +6,6 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.security.KeyStore.PrivateKeyEntry;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -70,11 +69,11 @@ public class ServerUI {
 			hash2port.put(hash, port);			
 			hash2sendtime.put(hash, System.currentTimeMillis());						
 		}	
-		
-		System.out.println("path: " + path);		
-		System.out.println("address£º " + address.getHostAddress());
-		System.out.println("port: " + port);
-		
+
+		System.out.println("[Server UI] ACK path: " + path);
+		System.out.println("[Server UI] ACK address£º " + address.getHostAddress());
+		System.out.println("[Server UI] ACK port: " + port);
+
 		byte[] buf = new byte[1024];
 		System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
 		System.arraycopy(hashcode, 0, buf, "ACK".getBytes().length, 4);
@@ -129,14 +128,17 @@ public class ServerUI {
 	
 	public void heart(InetAddress address, int port, byte[] hashcode) {
 		int hash = LFTP_head.Byte2Int(hashcode);
-		if (hash2port.get(hash) == port && hash2address.get(hash).equals(address) ) {
-			System.out.println("your port has not change");
-		} else {
-			System.out.println("Change to " + address.getHostAddress() + " : " + port);
-			hash2address.put(hash, address);
-			hash2port.put(hash, port);
-			hash2sendService.get(hash).change(address, port);
-			System.out.println("your port has changed");
+		if (hash2port.containsKey(hash)) {
+			if (hash2port.get(hash) == port && hash2address.get(hash).equals(address) ) {
+				System.out.println("your port has not change");
+			} else {
+				System.out.println("Change to " + address.getHostAddress() + " : " + port);
+				hash2address.put(hash, address);
+				hash2port.put(hash, port);
+				
+				hash2sendService.get(hash).change(address, port);
+				System.out.println("your port has changed");
+			}
 		}
 	}
 	
@@ -166,8 +168,12 @@ public class ServerUI {
 			for (Integer hash : hash2receivetime.keySet()) {
 				if (curr - hash2receivetime.get(hash) > timeOut) {					
 		    		try {
-		    			new ReceiveService(hash2Socket.get(hash), "test\\dst12m.txt").receive();
+
+//		    			new receive(address2Socket.get(address), address2path.get(address)).start();
+ 	    			    new ReceiveService(hash2Socket.get(hash), "test\\dst12m.txt").receive();
 //		    			new receive(hash2Socket.get(hash), hash2path.get(hash)).start();
+
+ 	    			    
 		    			System.out.println("receive over");
 		    		} catch (Exception e) {
 						e.printStackTrace();

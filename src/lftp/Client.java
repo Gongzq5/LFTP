@@ -206,4 +206,6 @@ public class Client {
  * 
  * lsend 172.18.34.154 5066 test\\src10m.txt
  * 
+ * lsend 120.77.155.38 5066 test\\src10m.txt
+ * lget 120.77.155.38 5066 test\\src10m.txt
  */

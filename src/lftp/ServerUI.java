@@ -133,9 +133,16 @@ public class ServerUI {
 				System.out.println("send second ACK to address: " + hash2address.get(hash) + " port: " + hash2port.get(hash));
 		        
 //				datagramPacket.setData(buf, 0, buf.length);
+//				socket.send(datagramPacket);
+				hash2address.put(hash, datagramPacket.getAddress());
+				hash2port.put(hash, datagramPacket.getPort());
+				
 		        DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, hash2address.get(hash), hash2port.get(hash));
 		        socket.send(sendPacket);
 		        System.out.println("send second ACK ");
+		        System.out.println("receive to: " + socket.getLocalAddress() +"  " +socket.getLocalPort());
+		        System.out.println("receive to: " + sendPacket.getAddress() +"  " +sendPacket.getPort());
+		        System.out.println("receive to: " + datagramPacket.getAddress() +"  " +datagramPacket.getPort());
 		        
 			}			
 		} catch (IOException e) {
@@ -184,18 +191,18 @@ public class ServerUI {
 	
 	public void heart(InetAddress address, int port, byte[] hashcode) {
 		int hash = LFTP_head.Byte2Int(hashcode);
-		if (hash2port.containsKey(hash)) {
-			if (hash2port.get(hash) == port && hash2address.get(hash).equals(address) ) {
-				System.out.println("your port has not change " + port);
-			} else {
-				System.out.println("Change to " + address.getHostAddress() + " : " + port);
-				hash2address.put(hash, address);
-				hash2port.put(hash, port);
-				
-				hash2sendService.get(hash).change(address, port);
-				System.out.println("your port has changed" + port);
-			}
-		}
+//		if (hash2port.containsKey(hash)) {
+//			if (hash2port.get(hash) == port && hash2address.get(hash).equals(address) ) {
+//				System.out.println("your port has not change " + port);
+//			} else {
+//				System.out.println("Change to " + address.getHostAddress() + " : " + port);
+//				hash2address.put(hash, address);
+//				hash2port.put(hash, port);
+//				
+//				hash2sendService.get(hash).change(address, port);
+//				System.out.println("your port has changed" + port);
+//			}
+//		}
 	}
 	
 	private class TimeCounter extends TimerTask {

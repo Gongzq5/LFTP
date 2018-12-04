@@ -143,7 +143,8 @@ public class Client {
 									serverAddress, getport);
 							datagramSocket.send(requestPacket2);
 							
-							System.out.println("send success");				
+							System.out.println("send success");		
+							System.out.println("send to: " + serverAddress + "  " + getport);
 							DatagramPacket d2 = new DatagramPacket(new byte[1024], 1024, serverAddress ,getport);
 							datagramSocket.receive(d2);
 							System.out.println("receive success");

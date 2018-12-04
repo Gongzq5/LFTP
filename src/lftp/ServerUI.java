@@ -132,8 +132,11 @@ public class ServerUI {
 						
 				System.out.println("send second ACK to address: " + hash2address.get(hash) + " port: " + hash2port.get(hash));
 		        
+//				datagramPacket.setData(buf, 0, buf.length);
 		        DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, hash2address.get(hash), hash2port.get(hash));
-		        socket.send(sendPacket);				
+		        socket.send(sendPacket);
+		        System.out.println("send second ACK ");
+		        
 			}			
 		} catch (IOException e) {
 			e.printStackTrace();

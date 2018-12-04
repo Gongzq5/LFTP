@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -55,6 +56,12 @@ public class SendService {
 		this.inetAddress = inetAddress;
 		this.port = port;
 		this.path = path;
+		try {
+			datagramSocket = new DatagramSocket();
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
 		unUsedAck = new ConcurrentHashMap<Integer, Boolean>();
@@ -124,8 +131,7 @@ public class SendService {
 						int percentage = (int)(packet.getSerialNumber()*100/(filesendSize/READSIZE));
 						if (packet.getSerialNumber() + 254 == filesendSize/READSIZE)
 							percentage = 100;
-						System.out.println("I have send " + packet.getSerialNumber() + " ALL file size: " + (filesendSize/READSIZE) + 
-								"  " + percentage + "%");
+						System.out.println("I have send " + percentage + "%" + " ALL file size: " + (filesendSize/READSIZE));
 						System.out.println("send to address: " + inetAddress.getHostAddress() + " port: " + port);
 					}
 					output ++;

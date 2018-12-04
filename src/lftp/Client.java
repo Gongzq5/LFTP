@@ -10,8 +10,6 @@ import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import lftp.ServerUI.send;
-
 public class Client {
 	private static final String PROMPT = "LFTP > ";
 	private static final String GET_COMMAND = "lget";
@@ -144,8 +142,9 @@ public class Client {
 							DatagramPacket requestPacket2 = new DatagramPacket(buf, buf.length,
 									serverAddress, getport);
 							datagramSocket.send(requestPacket2);
-							System.out.println("send success");
-							DatagramPacket d2 = new DatagramPacket(new byte[1024], 1024);
+							
+							System.out.println("send success");				
+							DatagramPacket d2 = new DatagramPacket(new byte[1024], 1024, serverAddress ,getport);
 							datagramSocket.receive(d2);
 							System.out.println("receive success");
 							
@@ -161,11 +160,11 @@ public class Client {
 								timer = new Timer();
 								timer.schedule(new HeartBeat(), 0, 2000);
 								receiveService = new ReceiveService(datagramSocket, "test\\RCV.txt");
+								System.out.println("receive begin");
 								receiveService.receive();
 								timer.cancel();
 								System.out.println("receive over");
-							}
-							////////////////////////						
+							}					
 							
 							break;
 						}

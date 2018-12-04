@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import javax.xml.crypto.Data;
+
 public class ServerUI {	
 	private final int PORT_NUM = 5066;
 	private DatagramSocket datagramSocket = null;
@@ -62,24 +64,34 @@ public class ServerUI {
 		
 		if (hash2sendtime.containsKey(hash)) {
 			System.out.println("I have receive GET message before");
-			hash2sendtime.put(hash, System.currentTimeMillis());			
+//			hash2sendtime.put(hash, System.currentTimeMillis());			
 		} else {
 			hash2path.put(hash, path);
 			hash2address.put(hash, address);
 			hash2port.put(hash, port);			
-			hash2sendtime.put(hash, System.currentTimeMillis());						
+//			hash2sendtime.put(hash, System.currentTimeMillis());	
+			
+			DatagramSocket ds = null;			
+			try {
+				ds = new DatagramSocket();
+			} catch (SocketException e) {
+				
+			}	
+			hash2Socket.put(hash, ds);
 		}	
 
 		System.out.println("[Server UI] ACK path: " + path);
-		System.out.println("[Server UI] ACK address£º " + address.getHostAddress());
+		System.out.println("[Server UI] ACK address: " + address.getHostAddress());
 		System.out.println("[Server UI] ACK port: " + port);
+		System.out.println("[Server UI] New send port: " + hash2Socket.get(hash).getLocalPort());
 
 		byte[] buf = new byte[1024];
 		System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
 		System.arraycopy(hashcode, 0, buf, "ACK".getBytes().length, 4);
-		System.arraycopy(LFTP_head.IntToByte(port), 0, buf, "ACK".getBytes().length+4, 4);
+		System.arraycopy(LFTP_head.IntToByte(hash2Socket.get(hash).getLocalPort()), 0, buf, "ACK".getBytes().length+4, 4);
 				
-		
+		System.out.println("send ACK to address: " + address.getHostAddress() + " port: " + port);
+        
         DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, address, port);
         
         try {
@@ -87,12 +99,48 @@ public class ServerUI {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+        sendFile2(hash2Socket.get(hash));
+	}
+	
+	public void sendFile2(DatagramSocket socket) {
+		byte[] receMsgs = new byte[1024];
+		DatagramPacket datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
+		try {
+			socket.receive(datagramPacket);
+			String receStr = new String(datagramPacket.getData(), 0 , datagramPacket.getLength());
+			byte[] hashcode = new byte[4];
+			System.arraycopy(receMsgs, 3, hashcode, 0, 4);	
+			int hash = LFTP_head.Byte2Int(hashcode);
+			
+			if (receStr.substring(0, 3).equals("GET")) {
+				if (hash2sendtime.containsKey(hash)) {
+					System.out.println("I have receive second GET message before");
+					hash2sendtime.put(hash, System.currentTimeMillis());			
+				} else {
+					System.out.println("I have receive second GET message");
+					hash2sendtime.put(hash, System.currentTimeMillis());				
+				}
+				
+				byte[] buf = new byte[1024];
+				System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
+				System.arraycopy(hashcode, 0, buf, "ACK".getBytes().length, 4);
+				System.arraycopy(LFTP_head.IntToByte(hash2Socket.get(hash).getLocalPort()), 0, buf, "ACK".getBytes().length+4, 4);
+						
+				System.out.println("send second ACK to address: " + hash2address.get(hash) + " port: " + hash2port.get(hash));
+		        
+		        DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, hash2address.get(hash), hash2port.get(hash));
+		        socket.send(sendPacket);				
+			}			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
 	}
 	
 	public void receiveFile(String path, InetAddress address, int port, byte[] hashcode) {		
 		int hash = LFTP_head.Byte2Int(hashcode);
 		
-		if (hash2receivetime.containsKey(address)) {
+		if (hash2receivetime.containsKey(hash)) {
 			System.out.println("I have receive SEND message before");
 			hash2receivetime.put(hash, System.currentTimeMillis());			
 		} else {
@@ -118,6 +166,7 @@ public class ServerUI {
 		System.arraycopy(LFTP_head.IntToByte(hash2Socket.get(hash).getLocalPort()), 0, buf, "ACK".getBytes().length+4, 4);			
 
         DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, address, port);
+        System.out.println("send ACK to address: " + address.getHostAddress() + " port: " + port);
         try {
 			datagramSocket.send(sendPacket);
 		} catch (IOException e) {
@@ -130,14 +179,14 @@ public class ServerUI {
 		int hash = LFTP_head.Byte2Int(hashcode);
 		if (hash2port.containsKey(hash)) {
 			if (hash2port.get(hash) == port && hash2address.get(hash).equals(address) ) {
-				System.out.println("your port has not change");
+				System.out.println("your port has not change " + port);
 			} else {
 				System.out.println("Change to " + address.getHostAddress() + " : " + port);
 				hash2address.put(hash, address);
 				hash2port.put(hash, port);
 				
 				hash2sendService.get(hash).change(address, port);
-				System.out.println("your port has changed");
+				System.out.println("your port has changed" + port);
 			}
 		}
 	}
@@ -151,7 +200,7 @@ public class ServerUI {
 				if (curr - hash2sendtime.get(hash) > timeOut) {					
 		    		try {
 		    			System.out.println("start send " + hash);
-		    			new send(hash2address.get(hash), hash2port.get(hash), hash2path.get(hash), hash).start();
+		    			new send(hash2Socket.get(hash), hash2path.get(hash), hash).start();
 
 						System.out.println("send over");
 					} catch (Exception e) {
@@ -192,23 +241,21 @@ public class ServerUI {
 	
 	
 	public class send extends Thread {
-		InetAddress address = null;
-		int port = 0;
+		DatagramSocket socket = null;
 		String path;
 		int hash = 0;
 		
-		public send (InetAddress address, int port, String path, int hash) {
-			this.address = address;
-			this.port = port;
+		public send (DatagramSocket socket, String path, int hash) {
+			this.socket = socket;
 			this.path = path;
 			this.hash = hash;
 		}
 		@Override    
 	    public void run() {
 			try {
-				SendService sendService = new SendService(address, port, path);
+				SendService sendService = new SendService(socket, path);
 				hash2sendService.put(hash, sendService);
-				System.out.println("send send send");
+				System.out.println("send file to port: " + socket.getLocalPort());
 				sendService.send();
 			} catch (UnknownHostException | InterruptedException e) {
 				// TODO Auto-generated catch block

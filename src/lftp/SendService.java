@@ -60,7 +60,17 @@ public class SendService {
 		reSendQueue = new ConcurrentLinkedQueue<>();
 	}
 	
+	public SendService(DatagramSocket socket, String path) {
+		this.datagramSocket = socket;
+		this.path = path;
+		
+		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
+		unUsedAck = new ConcurrentHashMap<Integer, Boolean>();
+		reSendQueue = new ConcurrentLinkedQueue<>();
+	}
+	
 	public void change(InetAddress inetAddress, int port) {
+		System.out.println("I have receve port change ");
 		this.inetAddress = inetAddress;
 		this.port = port;
 	}
@@ -91,6 +101,7 @@ public class SendService {
 		recieveThread.join();
 	}
 	
+	private int output = 0; // for output
 	
 	private class SendThread extends Thread {
 		InetAddress inetAddress = null;
@@ -102,9 +113,16 @@ public class SendService {
 		@Override
 		public void run() {
 			try {
-				datagramSocket = new DatagramSocket();
+//				datagramSocket = new DatagramSocket();
 				while (isSending) {
-					
+					if (output >= 1000) {    // for output
+						output = 0;
+						LFTP_packet packet = packetList.get(nextSeqNumber);
+						System.out.println("I have send " + packet.getSerialNumber());
+						System.out.println("send to address: " + inetAddress.getHostAddress() + " port: " + port);
+					}
+					output ++;
+						
 					if (reSendQueue.isEmpty() && congestionWindowSize < threshold && congestionWindowSize < LISTSIZE) {
 						congestionWindowSize *= 2;						
 					} else if (reSendQueue.isEmpty() && congestionWindowSize >= threshold && congestionWindowSize < LISTSIZE){
@@ -173,7 +191,7 @@ public class SendService {
 				while (true) {
 					datagramSocket.receive(datagramPacket);
 					LFTP_packet packet = new LFTP_packet(receMsgs);
-					if (tempCountInWhileForOutput % 50 == 0) {
+					if (tempCountInWhileForOutput % 500 == 0) {
 						System.out.println("Address : " + datagramPacket.getAddress().getHostAddress()
 								+ "   Port : " + datagramPacket.getPort());
 					}

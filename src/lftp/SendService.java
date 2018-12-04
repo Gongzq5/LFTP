@@ -60,8 +60,10 @@ public class SendService {
 		reSendQueue = new ConcurrentLinkedQueue<>();
 	}
 	
-	public SendService(DatagramSocket socket, String path) {
+	public SendService(DatagramSocket socket, InetAddress inetAddress, int port, String path) {
 		this.datagramSocket = socket;
+		this.inetAddress = inetAddress;
+		this.port = port;
 		this.path = path;
 		
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());

@@ -125,14 +125,43 @@ public class Client {
 					if (tag.equals(ACK)) {
 						byte[] addressByte = new byte[4];
 						System.arraycopy(datagramPacket.getData(), 3, addressByte, 0, 4);
+						System.out.println("Analysis of received ACK");
 						if (Arrays.equals(addressByte, hashId)) {
-							System.out.println("Data transfer begin, please wait in patient...");
-							timer = new Timer();
-							timer.schedule(new HeartBeat(), 0, 2000);
-							receiveService = new ReceiveService(datagramSocket, "test\\RCV.txt");
-							receiveService.receive();
-							timer.cancel();
-							System.out.println("receive over");
+							// 获取 port 重发 GET
+							System.out.println("Analysis success");
+							
+							byte[] portByte = new byte[4];
+							System.arraycopy(datagramPacket.getData(), 7, portByte, 0, 4);
+							int getport = Byte2Int(portByte);
+							
+							System.out.println("Get new port: " + getport);
+							
+							byte[] buf2 = new byte[1024];
+							System.arraycopy(GET.getBytes(), 0, buf2, 0, GET.getBytes().length); // 'GET'
+							System.arraycopy(hashId, 0, buf2, 3, 4);
+							DatagramPacket requestPacket2 = new DatagramPacket(buf, buf.length,
+									serverAddress, getport);
+							datagramSocket.send(requestPacket2);
+							datagramSocket.receive(datagramPacket);
+							
+							
+							// 重发后接收 ACK
+							String receiveMsg2 = new String(datagramPacket.getData());
+							String tag2 = receiveMsg2.substring(0, CMD_LEN);
+							System.out.println("[Client UI] ACK received second, " + tag2 + " from " + datagramPacket.getAddress() + ":" 
+												+ datagramPacket.getPort());
+							
+							if (tag2.equals(ACK)) {
+								System.out.println("Data transfer begin, please wait in patient...");
+								timer = new Timer();
+								timer.schedule(new HeartBeat(), 0, 2000);
+								receiveService = new ReceiveService(datagramSocket, "test\\RCV.txt");
+								receiveService.receive();
+								timer.cancel();
+								System.out.println("receive over");
+							}
+							////////////////////////						
+							
 							break;
 						}
 					}

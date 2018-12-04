@@ -10,6 +10,8 @@ import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import lftp.ServerUI.send;
+
 public class Client {
 	private static final String PROMPT = "LFTP > ";
 	private static final String GET_COMMAND = "lget";
@@ -142,14 +144,17 @@ public class Client {
 							DatagramPacket requestPacket2 = new DatagramPacket(buf, buf.length,
 									serverAddress, getport);
 							datagramSocket.send(requestPacket2);
-							datagramSocket.receive(datagramPacket);
+							System.out.println("send success");
+							DatagramPacket d2 = new DatagramPacket(new byte[1024], 1024);
+							datagramSocket.receive(d2);
+							System.out.println("receive success");
 							
 							
 							// 重发后接收 ACK
-							String receiveMsg2 = new String(datagramPacket.getData());
+							String receiveMsg2 = new String(d2.getData());
 							String tag2 = receiveMsg2.substring(0, CMD_LEN);
-							System.out.println("[Client UI] ACK received second, " + tag2 + " from " + datagramPacket.getAddress() + ":" 
-												+ datagramPacket.getPort());
+							System.out.println("[Client UI] ACK received second, " + tag2 + " from " + d2.getAddress() + ":" 
+												+ d2.getPort());
 							
 							if (tag2.equals(ACK)) {
 								System.out.println("Data transfer begin, please wait in patient...");

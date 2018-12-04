@@ -41,6 +41,7 @@ public class SendService {
 	private int threshold = 128; //阈值
 	private long timeOut = 100;
 //	private int recvWindow = 128;
+	private long filesendSize = 0;
 	
 	private String path = null;
 	private int port = 5066;
@@ -120,7 +121,11 @@ public class SendService {
 					if (output >= 1000) {    // for output
 						output = 0;
 						LFTP_packet packet = packetList.get(nextSeqNumber);
-						System.out.println("I have send " + packet.getSerialNumber());
+						int percentage = (int)(packet.getSerialNumber()*100/(filesendSize/READSIZE));
+						if (packet.getSerialNumber() + 254 == filesendSize/READSIZE)
+							percentage = 100;
+						System.out.println("I have send " + packet.getSerialNumber() + " ALL file size: " + (filesendSize/READSIZE) + 
+								"  " + percentage + "%");
 						System.out.println("send to address: " + inetAddress.getHostAddress() + " port: " + port);
 					}
 					output ++;
@@ -189,22 +194,22 @@ public class SendService {
 		public void run() {
 			try {
 				sleep(10);
-				int tempCountInWhileForOutput = 0;
+//				int tempCountInWhileForOutput = 0;
 				while (true) {
 					datagramSocket.receive(datagramPacket);
 					LFTP_packet packet = new LFTP_packet(receMsgs);
-					if (tempCountInWhileForOutput % 500 == 0) {
-						System.out.println("Address : " + datagramPacket.getAddress().getHostAddress()
-								+ "   Port : " + datagramPacket.getPort());
-					}
-					tempCountInWhileForOutput++;
+//					if (tempCountInWhileForOutput % 500 == 0) {
+//						System.out.println("Address : " + datagramPacket.getAddress().getHostAddress()
+//								+ "   Port : " + datagramPacket.getPort());
+//					}
+//					tempCountInWhileForOutput++;
 					if (packet.getIsfinal() == 1) {
 						break;
 					}
 					
-					if (packet.getAck() == 1) {
+//					if (packet.getAck() == 1) {
 //						System.out.println("接收到了:  " + packet.getSerialNumber());
-					}
+//					}
 					
 					boolean ackInWindow = false;
 					
@@ -263,6 +268,7 @@ public class SendService {
 	    	InputStream is = null;
 	    	try {
 	    		is = new FileInputStream(src);
+	    		filesendSize = is.available();
 		    	for (int i = 0; ; i++) {
 		    		if ((fileNumber+1)%LISTSIZE == sendBase) {
 		    			Thread.sleep(10);

@@ -46,7 +46,7 @@ public class ServerUI {
 			System.arraycopy(receMsgs, 8, pathByte, 0, length);			
 			String sendpath = new String(pathByte);
 			
-			System.out.println("length " + length + " path: " + sendpath);
+//			System.out.println("length " + length + " path: " + sendpath);
 			
 			if (receStr.substring(0, 3).equals("GET")) {
 				this.sendFile(sendpath, datagramPacket.getAddress(), datagramPacket.getPort(), hashcode);
@@ -60,10 +60,12 @@ public class ServerUI {
 	
 	public void sendFile(String path, InetAddress address, int port, byte[] hashcode) {
 		int hash = LFTP_head.Byte2Int(hashcode);
-		System.out.println("hash:    " + hash);
+		System.out.println("first ACK hash:    " + hash);
 		
-		if (hash2sendtime.containsKey(hash)) {
+		if (hash2address.containsKey(hash)) {
 			System.out.println("I have receive GET message before");
+			hash2address.put(hash, address);
+			hash2port.put(hash, port);	
 //			hash2sendtime.put(hash, System.currentTimeMillis());			
 		} else {
 			hash2path.put(hash, path);
@@ -89,7 +91,6 @@ public class ServerUI {
 		System.arraycopy("ACK".getBytes(), 0, buf, 0, "ACK".getBytes().length);
 		System.arraycopy(hashcode, 0, buf, "ACK".getBytes().length, 4);
 		System.arraycopy(LFTP_head.IntToByte(hash2Socket.get(hash).getLocalPort()), 0, buf, "ACK".getBytes().length+4, 4);
-				
 		
 		System.out.println("send ACK to address: " + address.getHostAddress() + " port: " + port);
         
@@ -113,6 +114,7 @@ public class ServerUI {
 			byte[] hashcode = new byte[4];
 			System.arraycopy(receMsgs, 3, hashcode, 0, 4);	
 			int hash = LFTP_head.Byte2Int(hashcode);
+			System.out.println("second ACK hash: " + hash);
 			
 			if (receStr.substring(0, 3).equals("GET")) {
 				if (hash2sendtime.containsKey(hash)) {

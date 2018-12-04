@@ -41,7 +41,6 @@ public class SendService {
 	private int congestionWindowSize = 1;
 	private int threshold = 128; //阈值
 	private long timeOut = 100;
-//	private int recvWindow = 128;
 	private long filesendSize = 0;
 	
 	private String path = null;
@@ -59,7 +58,6 @@ public class SendService {
 		try {
 			datagramSocket = new DatagramSocket();
 		} catch (SocketException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -123,9 +121,8 @@ public class SendService {
 		@Override
 		public void run() {
 			try {
-//				datagramSocket = new DatagramSocket();
 				while (isSending) {
-					if (output >= 1000) {    // for output
+					if (output >= 500) {    // for output
 						output = 0;
 						LFTP_packet packet = packetList.get(nextSeqNumber);
 						int percentage = (int)(packet.getSerialNumber()*100/(filesendSize/READSIZE));
@@ -146,8 +143,6 @@ public class SendService {
 					}
 					
 					windowSize = (receiveWindowSize > congestionWindowSize ? congestionWindowSize : receiveWindowSize);
-//					windowSize = congestionWindowSize;
-//					System.out.println("window size " + windowSize);
 					// 先发重传的包
 					while (!reSendQueue.isEmpty()) {
 						LFTP_packet packet = reSendQueue.poll();
@@ -156,7 +151,6 @@ public class SendService {
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
 						datagramSocket.send(datagramPacket);
-//						System.out.println("重发    " + packet.getSerialNumber() + "时间  " + packet.getTime());
 					}								
 					
 					boolean willSend = false;
@@ -176,7 +170,6 @@ public class SendService {
 						DatagramPacket datagramPacket = new DatagramPacket(
 								packet.tobyte(), packet.tobyte().length, 
 								inetAddress, port);
-//						System.out.println("发送包长度： " + packet.tobyte().length + "  " + packet.getLength());
 						datagramSocket.send(datagramPacket);
 						
 						nextSeqNumber = (nextSeqNumber+1) % LISTSIZE;
@@ -200,23 +193,13 @@ public class SendService {
 		public void run() {
 			try {
 				sleep(10);
-//				int tempCountInWhileForOutput = 0;
 				while (true) {
 					datagramSocket.receive(datagramPacket);
 					LFTP_packet packet = new LFTP_packet(receMsgs);
-//					if (tempCountInWhileForOutput % 500 == 0) {
-//						System.out.println("Address : " + datagramPacket.getAddress().getHostAddress()
-//								+ "   Port : " + datagramPacket.getPort());
-//					}
-//					tempCountInWhileForOutput++;
 					if (packet.getIsfinal() == 1) {
 						break;
 					}
-					
-//					if (packet.getAck() == 1) {
-//						System.out.println("接收到了:  " + packet.getSerialNumber());
-//					}
-					
+										
 					boolean ackInWindow = false;
 					
 					if (packet.getAck() == 1) {
@@ -346,10 +329,4 @@ public class SendService {
 		}
 	}
 	
-	public static void main(String[] args) throws UnknownHostException, InterruptedException {
-		InetAddress inetAddress = InetAddress.getLocalHost();
-		int port = 5066;
-		SendService test = new SendService(inetAddress, port, "test\\src10m.txt");
-		test.send();
-	}
 }

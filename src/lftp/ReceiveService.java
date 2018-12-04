@@ -30,7 +30,7 @@ public class ReceiveService {
 	private FileThread fileThread = null;
 	
 	private int receiveBase = 0;	
-	private int windowSize = 200; // 256
+	private int windowSize = 200;
 	private int filereadNumber = 0;
 	private int filewriteNumber = 0;
 	private Map<Integer, LFTP_packet> packet = new ConcurrentHashMap<Integer, LFTP_packet>();
@@ -58,24 +58,13 @@ public class ReceiveService {
 
 	}
 	
-//	public ReceiveService(DatagramSocket datagramSocket, DatagramPacket datagramPacket, String path) {
-//		System.out.println("start????");
-//		this.datagramPacket = datagramPacket;
-//		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
-//		this.datagramSocket = datagramSocket;
-//		this.path = path;
-//	}
-	
 	public ReceiveService(DatagramSocket datagramSocket, String path) {
 		datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
 		packetList = Collections.synchronizedList(new LinkedList<LFTP_packet>());
 		this.datagramSocket = datagramSocket;
 		this.path = path;
 	}
-	
-	
-
-	
+		
 	public void receive() throws UnknownHostException, InterruptedException {
 		if (fileThread == null) {
 			fileThread = new FileThread();
@@ -148,9 +137,7 @@ public class ReceiveService {
 				            		tem2.tobyte().length, datagramPacket.getAddress(), 
 				            		datagramPacket.getPort());
 				            datagramSocket.send(sendPacket);
-				            
-//				            System.out.println("接收到了: ？" + tem.getSerialNumber() + " 并且留下来这个" + ", 发回了：" + tem2.getSerialNumber());	
-				           
+				            				           
 						} catch (InterruptedIOException e) { 
 							// 当receive不到信息或者receive时间超过3秒时，就向服务器重发请求
 						} 
@@ -158,7 +145,6 @@ public class ReceiveService {
 				} // end while
 				
 				LFTP_packet final_pac = new LFTP_packet(0, 1, 1, 0, 1, FINAL_MSG.length(), FINAL_MSG.getBytes());
-//		    	System.out.println("final pac " + final_pac.getIsfinal());
 				DatagramPacket sendPacket = new DatagramPacket(final_pac.tobyte(), 
 		    			final_pac.tobyte().length, datagramPacket.getAddress(), 
 	            		datagramPacket.getPort());
@@ -196,11 +182,8 @@ public class ReceiveService {
 		    	while(true) {
 		    		
 		    		if (filereadNumber == receiveBase) {
-//		    			System.out.println("还没接受到文件，当前：" + filereadNumber + "  " + receiveBase +" 我要写：" + filewriteNumber);
 		    			Thread.sleep(10);
 		    		} else {
-//		    			System.out.println("写文件啦 ，写：" + filewriteNumber + "  接收到的：" + packetList.get(filereadNumber).getSerialNumber() + " is last " + 
-//		    						packetList.get(filereadNumber).getIslast());
 		    			DecimalFormat decimalFormat = new DecimalFormat(".00");
 		    			float receivedFileSize = packetList.get(filereadNumber).getSerialNumber() * WRITESIZE / 1024;
 		    			String partName = "KB";
@@ -217,7 +200,6 @@ public class ReceiveService {
 		    					byte[] tem = new byte[packetList.get(filereadNumber).getLength()];
 		    					System.arraycopy(packetList.get(filereadNumber).getData(), 0, tem, 0, packetList.get(filereadNumber).getLength());
 		    					out.write(tem);
-//		    					System.out.println("写文件长度： " +  tem.length + "  " + packetList.get(filereadNumber).getLength());
 		    				} else {
 		    					out.write(packetList.get(filereadNumber).getData());
 		    				}
@@ -250,17 +232,4 @@ public class ReceiveService {
 	    }
 	}
 		
-	public static void main(String[] args) throws UnknownHostException, InterruptedException {
-		DatagramSocket datagramSocket = null;
-		try {
-			datagramSocket = new DatagramSocket(5066);
-		} catch (SocketException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
-		ReceiveService test = new ReceiveService(datagramSocket, "test\\dst10m.txt");
-		test.receive();
-	}
 }

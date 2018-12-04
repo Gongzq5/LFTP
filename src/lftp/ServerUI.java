@@ -11,8 +11,6 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import javax.xml.crypto.Data;
-
 public class ServerUI {	
 	private final int PORT_NUM = 5066;
 	private DatagramSocket datagramSocket = null;
@@ -23,7 +21,8 @@ public class ServerUI {
 	private Map<Integer, String> hash2path = new HashMap<Integer, String>();	
 	private Map<Integer, Long> hash2sendtime = new HashMap<Integer, Long>();
 	private Map<Integer, SendService> hash2sendService = new HashMap<Integer, SendService>();
-
+	private Map<Integer, send> hash2sendThread = new HashMap<Integer, send>();
+	
 	private Map<Integer, DatagramSocket> hash2Socket = new HashMap<Integer, DatagramSocket>();
 	private Map<Integer, Long> hash2receivetime = new HashMap<Integer, Long>();
 	
@@ -32,6 +31,7 @@ public class ServerUI {
 		byte[] receMsgs = new byte[1024];
 		DatagramPacket datagramPacket = new DatagramPacket(receMsgs, receMsgs.length);
 		timer = new Timer();
+		new remove().start();
 		timer.schedule(new TimeCounter(), 0, 10);
 
 		while(true) {
@@ -45,9 +45,7 @@ public class ServerUI {
 			byte[] pathByte = new byte[length];
 			System.arraycopy(receMsgs, 8, pathByte, 0, length);			
 			String sendpath = new String(pathByte);
-			
-//			System.out.println("length " + length + " path: " + sendpath);
-			
+						
 			if (receStr.substring(0, 3).equals("GET")) {
 				this.sendFile(sendpath, datagramPacket.getAddress(), datagramPacket.getPort(), hashcode);
 			} else if (receStr.substring(0, 3).equals("SED")){
@@ -66,12 +64,10 @@ public class ServerUI {
 			System.out.println("I have receive GET message before");
 			hash2address.put(hash, address);
 			hash2port.put(hash, port);	
-//			hash2sendtime.put(hash, System.currentTimeMillis());			
 		} else {
 			hash2path.put(hash, path);
 			hash2address.put(hash, address);
 			hash2port.put(hash, port);			
-//			hash2sendtime.put(hash, System.currentTimeMillis());	
 			
 			DatagramSocket ds = null;			
 			try {
@@ -132,17 +128,12 @@ public class ServerUI {
 						
 				System.out.println("send second ACK to address: " + hash2address.get(hash) + " port: " + hash2port.get(hash));
 		        
-//				datagramPacket.setData(buf, 0, buf.length);
-//				socket.send(datagramPacket);
 				hash2address.put(hash, datagramPacket.getAddress());
 				hash2port.put(hash, datagramPacket.getPort());
 				
 		        DatagramPacket sendPacket = new DatagramPacket(buf, buf.length, hash2address.get(hash), hash2port.get(hash));
 		        socket.send(sendPacket);
 		        System.out.println("send second ACK ");
-		        System.out.println("receive to: " + socket.getLocalAddress() +"  " +socket.getLocalPort());
-		        System.out.println("receive to: " + sendPacket.getAddress() +"  " +sendPacket.getPort());
-		        System.out.println("receive to: " + datagramPacket.getAddress() +"  " +datagramPacket.getPort());
 		        
 			}			
 		} catch (IOException e) {
@@ -214,8 +205,11 @@ public class ServerUI {
 				if (curr - hash2sendtime.get(hash) > timeOut) {					
 		    		try {
 		    			System.out.println("start send ");
-		    			new send(hash2Socket.get(hash), hash2path.get(hash), 
-		    					hash2address.get(hash), hash2port.get(hash), hash).start();
+		    			send tem = new send(hash2Socket.get(hash), hash2path.get(hash), 
+		    					hash2address.get(hash), hash2port.get(hash), hash);
+		    			hash2sendThread.put(hash, tem);
+		    			tem.start();
+		    			
 
 					} catch (Exception e) {
 						e.printStackTrace();
@@ -231,10 +225,7 @@ public class ServerUI {
 			for (Integer hash : hash2receivetime.keySet()) {
 				if (curr - hash2receivetime.get(hash) > timeOut) {					
 		    		try {
-
-//		    			new receive(address2Socket.get(address), address2path.get(address)).start();
- 	    			    new ReceiveService(hash2Socket.get(hash), "test\\dst12m.txt").receive();
-//		    			new receive(hash2Socket.get(hash), hash2path.get(hash)).start();
+ 	    			    new ReceiveService(hash2Socket.get(hash), hash2path.get(hash)).receive();
  	    			    
 		    			System.out.println("receive over");
 		    		} catch (Exception e) {
@@ -244,6 +235,7 @@ public class ServerUI {
 		    		hash2path.remove(hash);
 		    		hash2receivetime.remove(hash);
 		    		hash2address.remove(hash);
+		    		hash2Socket.get(hash).close();
 		    		hash2Socket.remove(hash);
 				}
 			}
@@ -251,7 +243,20 @@ public class ServerUI {
 		}
 	}
 	
-	
+	public class remove extends Thread {
+		@Override  
+		public void run() {
+			for (Integer hash : hash2sendThread.keySet()) {
+				if (!hash2sendThread.get(hash).isAlive()) {
+					hash2path.remove(hash);
+		    		hash2port.remove(hash);
+					hash2address.remove(hash);
+					hash2Socket.get(hash).close();
+		    		hash2Socket.remove(hash);
+				}
+			}
+		}
+	}
 	
 	public class send extends Thread {
 		private DatagramSocket socket = null;
@@ -275,7 +280,6 @@ public class ServerUI {
 				System.out.println("send file to address: " + inetAddress + " port: " + port);
 				sendService.send();
 			} catch (UnknownHostException | InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -294,7 +298,6 @@ public class ServerUI {
 			try {
 				new ReceiveService(socket, path).receive();
 			} catch (UnknownHostException | InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

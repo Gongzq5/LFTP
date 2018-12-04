@@ -36,7 +36,6 @@ public class Client {
 	private Timer timer = null;
 	@Override
 	public int hashCode() {
-		// TODO Auto-generated method stub
 		return super.hashCode();
 	}
 	
@@ -47,7 +46,6 @@ public class Client {
 	
 	@Override
 	protected void finalize() throws Throwable {
-		// TODO Auto-generated method stub
 		if (timer != null) timer.cancel();
 		if (datagramSocket != null) datagramSocket.close(); 
 		super.finalize();
@@ -143,14 +141,11 @@ public class Client {
 									serverAddress, getport);
 							datagramSocket.send(requestPacket2);
 							
-							System.out.println("send success");		
+							// 重发后接收 ACK
 							System.out.println("send to: " + serverAddress + "  " + getport);
 							DatagramPacket d2 = new DatagramPacket(new byte[1024], 1024, serverAddress ,getport);
 							datagramSocket.receive(d2);
-							System.out.println("receive success");
-							
-							
-							// 重发后接收 ACK
+														
 							String receiveMsg2 = new String(d2.getData());
 							String tag2 = receiveMsg2.substring(0, CMD_LEN);
 							System.out.println("[Client UI] ACK received second, " + tag2 + " from " + d2.getAddress() + ":" 
